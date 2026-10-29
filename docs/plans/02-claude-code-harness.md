@@ -89,6 +89,9 @@ document-viewer/
 | Question | Answer | Source |
 |---|---|---|
 
+## Prediction vs brief
+- …
+
 ## Out of scope
 - …
 ```
@@ -118,7 +121,7 @@ document-viewer/
 
 ## Agent: `code-reviewer`
 
-- **Tools:** Read, Grep, Glob and `Bash(git diff*)`, `Bash(git log*)`. It never edits.
+- **Tools:** Read, Grep, Glob and Bash, which its prompt limits to `git diff`, `git log` and `git show`. It never edits.
 - **Input:** the task id.
 - **Checklist:**
   1. Every "Done when" item in the brief has a test.
@@ -147,7 +150,8 @@ Both are adapted from devcool-core's scripts, keeping only these rules.
       "Bash(./mvnw *)", "Bash(docker compose *)",
       "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)", "Bash(git switch*)",
       "Bash(git add *)", "Bash(git commit *)",
-      "Bash(gh pr view *)", "Bash(gh pr checks *)", "Bash(gh run *)"
+      "Bash(gh pr view *)", "Bash(gh pr checks *)", "Bash(gh run *)",
+      "Bash(bash scripts/test-hooks.sh)"
     ],
     "ask": ["Bash(git push *)", "Bash(gh pr create *)", "Bash(gh pr merge *)"],
     "deny": ["Read(./**/.env)", "Read(./**/.env.*)"]
