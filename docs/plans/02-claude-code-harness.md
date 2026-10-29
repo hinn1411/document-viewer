@@ -31,7 +31,7 @@ document-viewer/
 | `format-java` hook | Formats each edited Java file, so CI's format check never fails on AI code |
 | `guard-bash` hook | Blocks force pushes and direct pushes to `main` |
 | `settings.json` | Pre-approves safe commands and asks before pushing |
-| `.mcp.json` | context7, so the agent reads current Spring and Resilience4j docs instead of guessing APIs |
+| `.mcp.json` | context7, so the agent reads current Spring Boot 4 and Spring Framework 7 docs instead of guessing APIs |
 | `docs/ai-log.md` | Evidence of what the AI got wrong and how it was caught |
 
 ## `CLAUDE.md` (outline)

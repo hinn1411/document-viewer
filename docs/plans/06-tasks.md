@@ -5,7 +5,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 ## Checklist
 
 **P0 Foundation**
-- [ ] **T01** Scaffold the Spring Boot project
+- [x] **T01** Scaffold the Spring Boot project
 - [ ] **T02** Claude Code harness
 - [ ] **T03** CI pipeline
 - [ ] **T04** Docker Compose and mock source systems
@@ -50,9 +50,9 @@ Serves NFR4 (stateless) · est 2 h · depends on nothing · details in [`01-proj
 1. Given a fresh clone, when I run `./mvnw verify`, then it passes, with a Testcontainers PostgreSQL started and Flyway applied.
 2. Given the app is running, when I call `GET /actuator/health`, then it returns 200 `UP`.
 3. Given a badly formatted Java file, when I run `./mvnw spotless:check`, then it fails.
-4. Given any request, then a trace ID exists (Micrometer Tracing is on, with no exporter yet), so T10 and T12 can use it as the request ID.
+4. A `Tracer` bean exists and creates 32-hex trace IDs (tracing is on, with no exporter yet), so T10 and T12 can use them as the request ID.
 
-**Tests first:** `ApplicationIT.contextLoadsWithMigrations`, `ApplicationIT.healthIsUp`, `ApplicationIT.requestHasTraceId`
+**Tests first:** `ApplicationIT.contextLoadsWithMigrations`, `ApplicationIT.healthIsUp`, `ApplicationIT.tracerCreatesTraceIds`
 
 **Files:** `pom.xml`, `mvnw*`, `src/main/resources/application.yml`, `src/main/resources/db/migration/` (empty for now), the package folders
 
@@ -131,6 +131,8 @@ Serves FR2, A3, A4, A5, NFR5 · est 3 h · depends on T04, T05
 **Tests first:** `SalesSystemAdapterIT.mapsNestedDealsToDocuments`, `mapsUnknownTypeToOther`, `dropsNonHttpsLinks`, `throwsErrorOnUnreadableBody`, `retriesOnceOn503`, `throwsTimeoutAndDoesNotRetrySlowRead`, `sendsBearerToken`, plus `RetryOnTransientErrorTest` (true for 502/503/504 and refused connections, false for timeouts)
 
 **Decide in `/frame-task`:** does a 404 mean "no documents" or an error?
+
+**Design note:** the retry is Spring Framework 7's `@Retryable(includes = SourceException.class, predicate = RetryOnTransientError.class, maxRetries = 1, delay = 100)` on `fetch`, with `@EnableResilientMethods` on a config class (see [`01-project-setup.md`](01-project-setup.md#configuration-applicationyml)). It works through a proxy, so it applies only when another bean calls `fetch`, as `DocumentSearchService` does.
 
 **Files:** `source/DocumentSource.java`, `source/SourceException.java`, `source/RetryOnTransientError.java`, `source/sales/*`, `config/SourceClientsConfig.java`
 
