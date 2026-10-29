@@ -34,7 +34,7 @@ document-viewer/
 | `implement-task` skill | Enforces red → my review → green, and stops the agent changing agreed tests |
 | `code-reviewer` agent | A second, read-only look at each diff, run in its own context |
 | `format-java` hook | Formats each edited Java file, so CI's format check never fails on AI code |
-| `guard-bash` hook | Blocks force pushes and direct pushes to `main` |
+| `guard-bash` hook | Blocks force pushes and direct pushes to `main`; asks me before closing or merging PRs, deleting branches or writing through `gh api` |
 | `settings.json` | Pre-approves safe commands and asks before pushing |
 | `.mcp.json` | context7, so the agent reads current Spring Boot 4 and Spring Framework 7 docs instead of guessing APIs |
 | `docs/ai-log.md` | Evidence of what the AI got wrong and how it was caught |
@@ -138,7 +138,7 @@ The `code-reviewer` agent reads all three explicitly, because reviewing a diff d
 | Hook | Event | What it does |
 |---|---|---|
 | `format-java.sh` | PostToolUse on `Edit` / `Write` | If the file is `*.java`, runs `./mvnw -q spotless:apply -DspotlessFiles=<file>`. It never blocks |
-| `guard-bash.sh` | PreToolUse on `Bash` | Exits with code 2 (blocked) for `git push --force` / `-f`, a push to `main`, `git reset --hard`, `rm -rf` outside `target/`, and `terraform apply` / `terraform destroy` (only needed if the optional T18 is done). The message says to run it myself with `!` if I really mean it |
+| `guard-bash.sh` | PreToolUse on `Bash` | Exits with code 2 (blocked) for `git push --force` / `-f`, a push to `main`, `git reset --hard`, `rm -rf` outside `target/`, and `terraform apply` / `terraform destroy` (only needed if the optional T18 is done). The message says to run it myself with `!` if I really mean it. Push rules look only at the `git push` part of a chained command. It also returns a hook `ask` (a prompt that shows even in auto mode, unlike settings `ask` rules) for `gh pr`/`gh issue` close, merge, delete or lock, `--delete-branch`, any `gh … delete`, `gh repo archive/rename/edit`, `gh api` writes (`-X POST/PUT/PATCH/DELETE`, or `-f`/`--input` without `GET`), `git push --delete` or `:branch`, and `git branch -D` |
 
 Both are adapted from devcool-core's scripts, keeping only these rules.
 
