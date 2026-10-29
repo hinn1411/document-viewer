@@ -5,7 +5,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 ## Checklist
 
 **P0 Foundation**
-- [ ] **T01** Scaffold the Spring Boot project
+- [x] **T01** Scaffold the Spring Boot project
 - [ ] **T02** Claude Code harness
 - [ ] **T03** CI pipeline
 - [ ] **T04** Docker Compose and mock source systems
@@ -50,9 +50,9 @@ Serves NFR4 (stateless) · est 2 h · depends on nothing · details in [`01-proj
 1. Given a fresh clone, when I run `./mvnw verify`, then it passes, with a Testcontainers PostgreSQL started and Flyway applied.
 2. Given the app is running, when I call `GET /actuator/health`, then it returns 200 `UP`.
 3. Given a badly formatted Java file, when I run `./mvnw spotless:check`, then it fails.
-4. Given any request, then a trace ID exists (Micrometer Tracing is on, with no exporter yet), so T10 and T12 can use it as the request ID.
+4. A `Tracer` bean exists and creates 32-hex trace IDs (tracing is on, with no exporter yet), so T10 and T12 can use them as the request ID.
 
-**Tests first:** `ApplicationIT.contextLoadsWithMigrations`, `ApplicationIT.healthIsUp`, `ApplicationIT.requestHasTraceId`
+**Tests first:** `ApplicationIT.contextLoadsWithMigrations`, `ApplicationIT.healthIsUp`, `ApplicationIT.tracerCreatesTraceIds`
 
 **Files:** `pom.xml`, `mvnw*`, `src/main/resources/application.yml`, `src/main/resources/db/migration/` (empty for now), the package folders
 

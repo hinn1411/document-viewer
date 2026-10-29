@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: document-viewer
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/docviewer
+    username: docviewer
+    password: docviewer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  tracing:
+    sampling:
+      probability: 1.0 # every request locally; production sampling is a collector concern
+    export:
+      otlp:
+        enabled: false # tracing creates IDs from day 1; export to Jaeger starts in T14
