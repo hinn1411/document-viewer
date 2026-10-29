@@ -132,6 +132,8 @@ Serves FR2, A3, A4, A5, NFR5 · est 3 h · depends on T04, T05
 
 **Decide in `/frame-task`:** does a 404 mean "no documents" or an error?
 
+**Design note:** the retry is Spring Framework 7's `@Retryable(includes = SourceException.class, predicate = RetryOnTransientError.class, maxRetries = 1, delay = 100)` on `fetch`, with `@EnableResilientMethods` on a config class (see [`01-project-setup.md`](01-project-setup.md#configuration-applicationyml)). It works through a proxy, so it applies only when another bean calls `fetch`, as `DocumentSearchService` does.
+
 **Files:** `source/DocumentSource.java`, `source/SourceException.java`, `source/RetryOnTransientError.java`, `source/sales/*`, `config/SourceClientsConfig.java`
 
 ### T08: Service System adapter

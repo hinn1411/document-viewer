@@ -8,7 +8,7 @@ Covers tasks **T01** (scaffold) and **T04** (Docker Compose and mocks). See [`06
 |---|---|
 | Build | Maven with the wrapper (`./mvnw`), the same as devcool-core |
 | Java | 21 (LTS). Virtual threads switched on with `spring.threads.virtual.enabled=true` |
-| Spring Boot | The latest stable 3.x release, **at least 3.4** (needed for built-in structured JSON logging in T15). Look it up at scaffold time on start.spring.io or through context7, and don't guess |
+| Spring Boot | **4.1.2** (Spring Framework 7), the start.spring.io default at scaffold time. Its built-in structured JSON logging (T15) and `@Retryable` mean fewer libraries. Look up Boot 4 APIs through context7, because AI training data is mostly Boot 3 |
 | Group / artifact | `io.github.hinn1411` / `document-viewer` |
 | Base package | `io.github.hinn1411.docviewer` |
 
@@ -16,20 +16,24 @@ Covers tasks **T01** (scaffold) and **T04** (Docker Compose and mocks). See [`06
 
 | Area | Dependency | Why |
 |---|---|---|
-| Web | `spring-boot-starter-web` | REST endpoint and `RestClient` for calling the sources |
+These are the Boot 4 starters that start.spring.io generates. Boot 4 splits the starters by module, and each one has a matching `*-test` starter.
+
+| Area | Dependency | Why |
+|---|---|---|
+| Web | `spring-boot-starter-webmvc` | REST endpoint and `RestClient` for calling the sources |
 | Web | `spring-boot-starter-validation` | Validating request inputs |
 | Ops | `spring-boot-starter-actuator` | Health checks and the metrics endpoint |
 | Data | `spring-boot-starter-jdbc`, `org.postgresql:postgresql` | `JdbcClient` with plain SQL for the two tables. No JPA: there's nothing to map |
-| Data | `flyway-core`, `flyway-database-postgresql` | Versioned schema migrations |
-| Resilience | `resilience4j-spring-boot3`, `spring-boot-starter-aop` | One retry per source call (`@Retry`) |
-| API docs | `springdoc-openapi-starter-webmvc-ui` | OpenAPI spec and Swagger UI, which stand in for the client |
+| Data | `spring-boot-starter-flyway`, `flyway-database-postgresql` | Versioned schema migrations |
+| Resilience | none extra | Spring Framework 7's `@Retryable` + `@EnableResilientMethods`: one retry per source call |
+| API docs | `springdoc-openapi-starter-webmvc-ui` (3.x, for Boot 4) | OpenAPI spec and Swagger UI, which stand in for the client |
 | Metrics | `micrometer-registry-prometheus` | `/actuator/prometheus` (T13) |
-| Tracing | `micrometer-tracing-bridge-otel` (from **T01**), `opentelemetry-exporter-otlp` (from T14) | Every request gets a trace ID from day 1, which is used as the request ID and in the audit row. T14 adds the export to Jaeger |
+| Tracing | `spring-boot-starter-opentelemetry` (from **T01**, export switched off until T14) | Every request gets a trace ID from day 1, which is used as the request ID and in the audit row. T14 switches on the OTLP export to Jaeger |
 | Logs | none extra | Spring Boot's built-in structured JSON logging (T15) |
-| Test | `spring-boot-starter-test` | JUnit 5, AssertJ, Mockito |
-| Test | `spring-boot-testcontainers`, `org.testcontainers:postgresql`, `org.testcontainers:junit-jupiter` | A real PostgreSQL in tests, never H2 |
-| Test | `org.wiremock:wiremock-standalone` | Fake Sales and Service APIs with delays and errors |
-| Test | `org.awaitility:awaitility` | Waiting for the background snapshot save without `Thread.sleep` |
+| Test | `spring-boot-starter-*-test` for each starter above | JUnit 5, AssertJ, Mockito and the test slices |
+| Test | `spring-boot-testcontainers`, `testcontainers-postgresql`, `testcontainers-junit-jupiter` | A real PostgreSQL in tests, never H2 |
+| Test | `org.wiremock:wiremock-standalone` (added in T04) | Fake Sales and Service APIs with delays and errors |
+| Test | `org.awaitility:awaitility` (added in T11) | Waiting for the background snapshot save without `Thread.sleep` |
 
 **Maven plugins:**
 - `spotless-maven-plugin` with google-java-format. `spotless:check` runs in CI.
@@ -98,18 +102,18 @@ docviewer:
       connect-timeout: 300ms
       read-timeout: 1500ms
       token: dev-token
+```
 
-resilience4j:
-  retry:
-    configs:
-      default:
-        max-attempts: 2        # 1 call + 1 retry
-        wait-duration: 100ms
-        retry-exception-predicate: io.github.hinn1411.docviewer.source.RetryOnTransientError
+The retry is set on each adapter's `fetch` method, and `@EnableResilientMethods` is on a config class:
+
+```java
+@Retryable(includes = SourceException.class, predicate = RetryOnTransientError.class,
+           maxRetries = 1, delay = 100)   // 1 call + 1 retry, 100 ms apart
+public List<Document> fetch(Vin vin) { ... }
 ```
 
 **How failures are classified** (design doc §4.2):
-- **Retry:** `RetryOnTransientError` returns `true` only for HTTP 502, 503 and 504 and for refused or reset connections. It returns `false` for timeouts (`SocketTimeoutException` / `HttpTimeoutException` causes), because retrying a slow source adds load to it.
+- **Retry:** `RetryOnTransientError` (a `MethodRetryPredicate`) returns `true` only for HTTP 502, 503 and 504 and for refused or reset connections. It returns `false` for timeouts (`SocketTimeoutException` / `HttpTimeoutException` causes), because retrying a slow source adds load to it.
 - **Timeouts:** the adapter turns a connect or read timeout into `SourceException(TIMEOUT)`, and everything else into `SourceException(ERROR)`. The service's 2 s deadline is the backstop for anything slower.
 - **Token:** a real OAuth client-credentials flow is out of scope. The adapters send the configured token.
 

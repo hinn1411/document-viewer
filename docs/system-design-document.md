@@ -221,8 +221,8 @@ When a source fails, its status is `STALE` if a fallback copy under 24 h old exi
 | Group | Technology | Why |
 |---|---|---|
 | **Language and framework** | Java 21 | Virtual threads make parallel blocking calls cheap and keep the code simple to read and test. It's my strongest language |
-| | Spring Boot 3 | `RestClient`, `JdbcClient`, Actuator, and Micrometer metrics and tracing built in |
-| **Resilience** | Resilience4j | Timeouts and one retry per source. Its metrics are exported automatically |
+| | Spring Boot 4 | `RestClient`, `JdbcClient`, Actuator, and Micrometer metrics and tracing built in |
+| **Resilience** | Spring Framework retry (`@Retryable`) | One retry per source, built into Spring Framework 7, so no extra library |
 | **Data** | PostgreSQL 16 | Reliable and transactional for the audit log. JSONB stores the snapshots. Available as Amazon RDS |
 | | Flyway | Versioned, reviewable schema migrations |
 | **API contract** | springdoc-openapi | Generates the OpenAPI spec and Swagger UI from the code, so the mocked client always matches the API |
@@ -321,7 +321,7 @@ I used **Claude Code** (Claude Opus 5.5) in **plan mode**, so nothing is written
 | Let Claude Code read the challenge | Give the agent the full brief as context |
 | Told Claude Code to analyze the 4 challenges | Choose a scenario that best fits my background. I chose D because I have production experience in a platform that demands resilience design |
 | Asked Claude Code to research Keyloop's products | Build a mental model about the products, use them as my understanding to verify the agent's output in the implementation phase |
-| Made the key decisions myself when the AI asked: the stack, what the database stores, and the scope | Keep ownership of the design. I chose Java 21 + Spring Boot 3, my strongest stack |
+| Made the key decisions myself when the AI asked: the stack, what the database stores, and the scope | Keep ownership of the design. I chose Java 21 + Spring Boot 4 (the current release at scaffold time), my strongest stack |
 | Had the AI draft a detailed design, then directed it to simplify: generic components, a simpler data flow, a shorter observability section | Opus 5.5's first draft (xhigh effort) was over-engineered for Part 1. Keep the document at the design level, remove implementation details |
 | Reviewed every AI draft against the brief and pushed back: removed framework names from the diagrams, cut circuit breaker and bulkhead from the data flow, rewrote observability from a metrics list into a strategy | AI output is a draft. I own what gets submitted |
 | Turned common AI coding mistakes into planned tests: calling the sources one after the other, one failure failing the whole request, missing timeouts | Catch these mistakes with failing tests in Part 2, not by luck in review |
