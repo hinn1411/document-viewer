@@ -35,7 +35,7 @@ flowchart LR
 2. **Red.** `/implement-task Txx` first writes only the tests from the brief and runs them to show they fail. It stops for my review. The approved tests are committed as `test(Txx): …`.
 3. **Green.** The agent writes the simplest code that makes `./mvnw verify` pass. It may not edit or weaken the tests from the red commit. If it thinks a test is wrong, it stops and asks.
 4. **Review.** The `code-reviewer` agent checks the diff against `CLAUDE.md`, the design doc and the red commit. Then the green commit: `feat(Txx): …`.
-5. **Ship.** A pull request runs CI. Adding the `claude-review` label gets a second review. I merge.
+5. **Ship.** A pull request runs CI. When the build is green, Claude reviews the PR as a second reviewer. I merge.
 6. **Log.** Anything the AI got wrong, and how it was caught, goes into `docs/ai-log.md`. That file feeds the README's AI Collaboration Narrative and the video.
 
 The red and green commits make the test-first order visible in the git history.

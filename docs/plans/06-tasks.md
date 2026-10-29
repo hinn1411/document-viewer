@@ -70,9 +70,12 @@ Serves the AI-native TDD loop · est 2 h · depends on T01 · details in [`02-cl
 Serves every requirement (the gate) · est 1 h · depends on T01 · details in [`03-ci-pipeline.md`](03-ci-pipeline.md)
 
 **Done when**
-1. Given a PR, then the `Format, build and test` check runs and passes.
-2. Given a PR with a formatting error, then the check fails at "Format check".
-3. Given a PR labelled `claude-review`, then Claude posts inline comments.
+1. A PR runs the `Format, build and test` check, and it passes.
+2. A formatting error fails it at "Format check".
+3. A green non-draft PR gets a Claude review that replaces its earlier comments.
+4. `main` is protected by that check.
+
+The exact Given/When/Then and tests are in [`briefs/T03.md`](briefs/T03.md): `scripts/test-ci.sh` plus live PR runs.
 
 ### T04: Docker Compose and mock source systems
 Serves FR2, A4 · est 2 h · depends on T01 · details in [`01-project-setup.md`](01-project-setup.md#docker-compose-t04)
