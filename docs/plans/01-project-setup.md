@@ -68,7 +68,7 @@ io.github.hinn1411.docviewer
 └── config/                  RestClient beans, executor, Clock, properties
 ```
 
-Rules (also in `CLAUDE.md`):
+Rules (also in `.claude/rules/java-code.md`):
 - Each adapter keeps its source's response classes to itself, and only `Document` leaves it.
 - The controller returns DTOs, never domain records.
 - Time always comes from an injected `Clock`, so tests can control it.

@@ -11,6 +11,10 @@ document-viewer/
 ├── docs/ai-log.md
 └── .claude/
     ├── settings.json
+    ├── rules/
+    │   ├── java-code.md
+    │   ├── source-calls.md
+    │   └── testing.md
     ├── skills/
     │   ├── frame-task/SKILL.md
     │   ├── frame-task/brief-template.md
@@ -25,6 +29,7 @@ document-viewer/
 | Piece | Why it's there |
 |---|---|
 | `CLAUDE.md` | One place for the project's rules, so every session and every review agent starts from the same context |
+| `.claude/rules/` | Path-scoped rules: loaded only when Claude works on matching files, so `CLAUDE.md` stays small |
 | `frame-task` skill | Makes me agree the requirements and the tests before any code exists |
 | `implement-task` skill | Enforces red → my review → green, and stops the agent changing agreed tests |
 | `code-reviewer` agent | A second, read-only look at each diff, run in its own context |
@@ -36,29 +41,25 @@ document-viewer/
 
 ## `CLAUDE.md` (outline)
 
+`CLAUDE.md` holds only what every session needs:
 1. **What this is:** one paragraph, plus a link to `docs/system-design-document.md` as the source of truth.
-2. **Commands:**
-   - `./mvnw spotless:apply`
-   - `./mvnw test` (unit tests)
-   - `./mvnw verify` (unit + integration tests)
-   - `docker compose up`
-3. **Package layout:** the tree from [`01-project-setup.md`](01-project-setup.md#package-layout) and its three rules.
-4. **Tests:**
-   - Unit tests: JUnit 5 + AssertJ, no Spring context.
-   - Integration tests end in `IT` and use Testcontainers PostgreSQL and WireMock. Never H2.
-   - Name tests for the behaviour, e.g. `returnsPartialWhenServiceTimesOut`.
-   - Time comes from a fixed `Clock`. Waiting uses Awaitility. Never `Thread.sleep`.
-   - Latency is measured with `System.nanoTime()`, never with the `Clock`, because a fixed `Clock` would always report 0 ms.
-   - Timing tests assert a margin (for example "under 1.5 s"), never an exact time.
-5. **TDD rules:**
-   - Tests come first.
-   - Tests from a task's red commit are the spec. Don't change them without asking.
-6. **Never:**
-   - log full VINs, document titles, URLs or tokens
-   - return domain records from the controller
-   - call the sources one after the other
-   - wait on a source without a deadline
-7. **Definition of Done:** a link to [`README.md`](README.md#definition-of-done-every-task).
+2. **Commands:** `./mvnw spotless:apply`, `./mvnw test`, `./mvnw verify`, `docker compose up`, `bash scripts/test-hooks.sh`.
+3. **Rules:** a pointer to `.claude/rules/` and what each file covers.
+4. **TDD workflow:** tests come first; the red commit's tests are the spec; use context7 for APIs.
+5. **Never:** push to `main`, force push, `terraform apply`/`destroy`, read `.env`.
+6. **Definition of Done:** a link to [`README.md`](README.md#definition-of-done-every-task).
+
+## Rules (`.claude/rules/`)
+
+Each file has a `paths:` list in its frontmatter, so Claude Code loads it only when it reads or edits a matching file.
+
+| File | `paths` | What it says |
+|---|---|---|
+| `java-code.md` | `src/main/java/**/*.java` | The package layout from [`01-project-setup.md`](01-project-setup.md#package-layout) and its three rules; never log a full VIN, title, URL or token; VIN masking |
+| `source-calls.md` | `src/main/java/**/source/**`, `**/search/**`, `**/config/**` | Parallel calls, 2 s deadline, 300 ms / 1.5 s timeouts, one retry (never on a timeout), a failure becomes a status |
+| `testing.md` | `src/test/**` | JUnit 5 + AssertJ, `*IT` with Testcontainers and WireMock (never H2), behaviour names, fixed `Clock`, Awaitility (never `Thread.sleep`), `nanoTime` for latency, timing margins, red-commit tests are the spec |
+
+The `code-reviewer` agent reads all three explicitly, because reviewing a diff doesn't always open the matching files.
 
 ## Skill: `frame-task`
 
