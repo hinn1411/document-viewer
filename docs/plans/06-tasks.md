@@ -7,7 +7,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 **P0 Foundation**
 - [x] **T01** Scaffold the Spring Boot project
 - [x] **T02** Claude Code harness
-- [ ] **T03** CI pipeline
+- [x] **T03** CI pipeline
 - [ ] **T04** Docker Compose and mock source systems
 
 **P1 Domain**
