@@ -10,6 +10,6 @@ class ReviewProbe {
   private static final Logger log = LoggerFactory.getLogger(ReviewProbe.class);
 
   void logSearch(String vin) {
-    log.info("Searching documents for VIN {} at {}", vin, LocalDateTime.now());
+    log.info("Document search started for VIN {} at {}", vin, LocalDateTime.now());
   }
 }
