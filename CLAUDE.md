@@ -25,6 +25,7 @@ Code rules live in `.claude/rules/` and load when you work on matching files:
 
 ## Never
 - Push to `main`, force push, or run `terraform apply`/`destroy` (the `guard-bash` hook blocks these).
+- Close or merge PRs, delete branches or write through `gh api` without asking first, even for a throwaway PR you opened (the `guard-bash` hook prompts).
 - Read `.env` files.
 
 ## Definition of Done
