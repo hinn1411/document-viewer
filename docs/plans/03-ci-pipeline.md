@@ -21,8 +21,8 @@ The workflow file is the source of truth: [`.github/workflows/ci.yml`](../../.gi
 The review replaces the label opt-in that devcool-core uses. Each green push gets a fresh review, and only Claude's own earlier comments are deleted. The prompt checks the diff against `CLAUDE.md`, the design doc and, when the PR names a task, its brief's "Done when" tests. Claude can only read the diff (`gh pr diff`, `gh pr view`) and post inline comments (`mcp__github_inline_comment__create_inline_comment`). It never edits files or pushes.
 
 Things to know about the review job:
-- `claude-code-action` gets its GitHub token by an OIDC exchange that requires the PR's workflow file to match `main`. A PR that changes `ci.yml` (including T03 itself) gets a failed `Claude review` until it merges. That's why it isn't a required check.
-- Old comments are deleted before the new review runs. If the review then fails or is cancelled, the PR has no Claude comments, so check the job's status before reading "no comments" as "no issues".
+- `claude-code-action` gets its GitHub token by an OIDC exchange that requires the PR's workflow file to match `main`. On a PR that changes `ci.yml` (including T03 itself, [PR #3](https://github.com/hinn1411/document-viewer/pull/3)), the action logs `Skipping action due to workflow validation` and the job still passes, **without reviewing**. It isn't a required check.
+- Old comments are deleted before the new review runs. If the review fails, is cancelled or is skipped as above, the PR has no Claude comments. So a green `Claude review` with no comments doesn't mean "no issues": check the Review step's log for that warning.
 - PRs from forks are skipped: they get no secrets and a read-only token.
 
 Action versions are checked against each action's releases when the file changes.

@@ -48,8 +48,8 @@ jobs:
             target/failsafe-reports/
 
   # Advisory, not a required check: runs only when the build is green on a non-draft PR from this repo
-  # (fork PRs get no secrets). The action's OIDC exchange needs this file to match main, so a PR that
-  # changes ci.yml gets a failed review job until it merges.
+  # (fork PRs get no secrets). The action's OIDC exchange needs this file to match main: on a PR that
+  # changes ci.yml the action skips with a warning and the job still shows green, with no review.
   review:
     name: Claude review
     needs: build
