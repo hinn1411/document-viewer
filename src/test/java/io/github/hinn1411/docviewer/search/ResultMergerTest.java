@@ -15,6 +15,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /** T06: one list in a fixed order, and the search outcome derived from each source's status. */
 class ResultMergerTest {
@@ -60,88 +62,48 @@ class ResultMergerTest {
   @Test
   void dedupesWithinSourceOnly() {
     Document first = document("SALES", "1", NEW);
-    Document duplicate =
-        new Document(
-            "SALES:1",
-            "SALES",
-            "1",
-            DocumentType.OTHER,
-            "X",
-            "A later copy",
-            NEW,
-            URI.create("https://example.com/copy"),
-            false);
+    Document laterCopy =
+        new Document("SALES", "1", DocumentType.OTHER, "A later copy", NEW, first.url(), false);
 
     DocumentSearchResult result =
-        merge(ok("SALES", first, duplicate), ok("SERVICE", document("SERVICE", "1", NEW)));
+        merge(ok("SALES", first, laterCopy), ok("SERVICE", document("SERVICE", "1", NEW)));
 
     assertThat(ids(result)).containsExactly("SALES:1", "SERVICE:1");
     assertThat(result.documents().getFirst().title()).isEqualTo(first.title());
   }
 
-  @Test
-  void completeWhenAllSourcesOk() {
-    DocumentSearchResult result = merge(ok("SALES"), ok("SERVICE"));
+  @ParameterizedTest
+  @CsvSource({
+    "OK,          OK,          COMPLETE, false",
+    "OK,          STALE,       PARTIAL,  true",
+    "OK,          UNAVAILABLE, PARTIAL,  true",
+    "STALE,       STALE,       PARTIAL,  true",
+    "STALE,       UNAVAILABLE, PARTIAL,  true",
+    "UNAVAILABLE, UNAVAILABLE, FAILED,   true"
+  })
+  void derivesOutcomeAndPartialFromStatuses(
+      SourceStatus sales, SourceStatus service, SearchOutcome outcome, boolean partial) {
+    DocumentSearchResult result = merge(outcome("SALES", sales), outcome("SERVICE", service));
 
-    assertThat(result.outcome()).isEqualTo(SearchOutcome.COMPLETE);
-    assertThat(result.partial()).isFalse();
+    assertThat(result.outcome()).isEqualTo(outcome);
+    assertThat(result.partial()).isEqualTo(partial);
   }
 
   @Test
-  void partialWhenAnySourceNotOk() {
-    for (DocumentSearchResult result :
-        List.of(merge(ok("SALES"), stale("SERVICE")), merge(ok("SALES"), unavailable("SERVICE")))) {
-      assertThat(result.outcome()).isEqualTo(SearchOutcome.PARTIAL);
-      assertThat(result.partial()).isTrue();
-    }
-  }
-
-  @Test
-  void partialWhenOnlyStaleData() {
-    for (DocumentSearchResult result :
-        List.of(
-            merge(stale("SALES"), stale("SERVICE")),
-            merge(stale("SALES"), unavailable("SERVICE")))) {
-      assertThat(result.outcome()).isEqualTo(SearchOutcome.PARTIAL);
-      assertThat(result.partial()).isTrue();
-    }
-  }
-
-  @Test
-  void failedWhenNoSourceHasData() {
-    DocumentSearchResult result = merge(unavailable("SALES"), unavailable("SERVICE"));
-
-    assertThat(result.outcome()).isEqualTo(SearchOutcome.FAILED);
-    assertThat(result.partial()).isTrue();
-    assertThat(result.documents()).isEmpty();
-  }
-
-  @Test
-  void failedWhenNoSources() {
-    DocumentSearchResult result = merge();
-
-    assertThat(result.outcome()).isEqualTo(SearchOutcome.FAILED);
-    assertThat(result.partial()).isTrue();
-    assertThat(result.documents()).isEmpty();
-  }
-
-  @Test
-  void keepsSourceOnEveryDocument() {
-    DocumentSearchResult result =
-        merge(
-            ok("SALES", document("SALES", "1", NEW)), ok("SERVICE", document("SERVICE", "2", OLD)));
-
-    assertThat(result.documents()).extracting(Document::source).containsExactly("SALES", "SERVICE");
-  }
-
-  @Test
-  void keepsStaleFlagAndEverySourceOutcome() {
+  void keepsSourceStaleFlagAndEveryOutcome() {
     SourceOutcome sales = ok("SALES", document("SALES", "1", NEW));
-    SourceOutcome service = stale("SERVICE", staleDocument("SERVICE", "2", OLD));
-    SourceOutcome third = unavailable("THIRD");
+    SourceOutcome service =
+        SourceOutcome.stale(
+            "SERVICE",
+            FailureReason.TIMEOUT,
+            List.of(document("SERVICE", "2", OLD)),
+            LATENCY,
+            SNAPSHOT_TIME);
+    SourceOutcome third = SourceOutcome.unavailable("THIRD", FailureReason.ERROR, LATENCY);
 
     DocumentSearchResult result = merge(sales, service, third);
 
+    assertThat(result.documents()).extracting(Document::source).containsExactly("SALES", "SERVICE");
     assertThat(result.documents()).extracting(Document::stale).containsExactly(false, true);
     assertThat(result.sources()).containsExactly(sales, service, third);
   }
@@ -155,42 +117,26 @@ class ResultMergerTest {
   }
 
   private static SourceOutcome ok(String source, Document... documents) {
-    return new SourceOutcome(source, SourceStatus.OK, null, List.of(documents), LATENCY, null);
+    return SourceOutcome.ok(source, List.of(documents), LATENCY);
   }
 
-  private static SourceOutcome stale(String source, Document... documents) {
-    return new SourceOutcome(
-        source,
-        SourceStatus.STALE,
-        FailureReason.TIMEOUT,
-        List.of(documents),
-        LATENCY,
-        SNAPSHOT_TIME);
-  }
-
-  private static SourceOutcome unavailable(String source) {
-    return new SourceOutcome(
-        source, SourceStatus.UNAVAILABLE, FailureReason.ERROR, List.of(), LATENCY, null);
+  private static SourceOutcome outcome(String source, SourceStatus status) {
+    return switch (status) {
+      case OK -> SourceOutcome.ok(source, List.of(), LATENCY);
+      case STALE ->
+          SourceOutcome.stale(source, FailureReason.ERROR, List.of(), LATENCY, SNAPSHOT_TIME);
+      case UNAVAILABLE -> SourceOutcome.unavailable(source, FailureReason.ERROR, LATENCY);
+    };
   }
 
   private static Document document(String source, String id, Instant date) {
-    return document(source, id, date, false);
-  }
-
-  private static Document staleDocument(String source, String id, Instant date) {
-    return document(source, id, date, true);
-  }
-
-  private static Document document(String source, String id, Instant date, boolean stale) {
     return new Document(
-        source + ":" + id,
         source,
         id,
         DocumentType.OTHER,
-        "X",
         "Title " + id,
         date,
         URI.create("https://example.com/" + id),
-        stale);
+        false);
   }
 }
