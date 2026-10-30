@@ -96,12 +96,10 @@ docviewer:
       base-url: http://localhost:8081
       connect-timeout: 300ms
       read-timeout: 1500ms
-      token: dev-token         # stubbed OAuth 2.0 token, sent as a bearer token (A5)
     service:
       base-url: http://localhost:8082
       connect-timeout: 300ms
       read-timeout: 1500ms
-      token: dev-token
 ```
 
 The retry is set on each adapter's `fetch` method, and `@EnableResilientMethods` is on a config class:
@@ -115,7 +113,6 @@ public List<Document> fetch(Vin vin) { ... }
 **How failures are classified** (design doc §4.2):
 - **Retry:** `RetryOnTransientError` (a `MethodRetryPredicate`) returns `true` only for HTTP 502, 503 and 504 and for refused or reset connections. It returns `false` for timeouts (`SocketTimeoutException` / `HttpTimeoutException` causes), because retrying a slow source adds load to it.
 - **Timeouts:** the adapter turns a connect or read timeout into `SourceException(TIMEOUT)`, and everything else into `SourceException(ERROR)`. The service's 2 s deadline is the backstop for anything slower.
-- **Token:** a real OAuth client-credentials flow is out of scope. The adapters send the configured token.
 
 ## Docker Compose (T04)
 

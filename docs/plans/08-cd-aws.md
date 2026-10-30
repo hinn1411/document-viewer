@@ -23,7 +23,7 @@ A small single-environment stack in `infra/`, in one region:
 | ECR repository | Images tagged by git SHA, immutable |
 | ECS cluster + Fargate service (1 task) behind an ALB | Runs the service. It's stateless, so scaling out means raising the task count (NFR4) |
 | RDS PostgreSQL (smallest instance, single AZ for the demo) | Audit log and snapshots |
-| Secrets Manager | The database password and the source client credentials |
+| Secrets Manager | The database password |
 | WireMock as a second container in the same task | The mocked Sales and Service systems, as in local runs |
 | IAM role for GitHub Actions through OIDC | The deploy workflow assumes it. No long-lived AWS keys |
 | CloudWatch log group | Container logs |
