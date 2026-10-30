@@ -12,15 +12,15 @@ classDiagram
         +masked() String
     }
     class Document {
-        +String id
         +String source
         +String sourceDocumentId
         +DocumentType type
-        +String sourceType
         +String title
         +Instant documentDate
         +URI url
         +boolean stale
+        +id() String
+        +asStale() Document
     }
     class SourceOutcome {
         +String source
@@ -29,6 +29,9 @@ classDiagram
         +List~Document~ documents
         +Duration latency
         +Instant dataAsOf
+        +ok(source, documents, latency)$ SourceOutcome
+        +stale(source, reason, documents, latency, dataAsOf)$ SourceOutcome
+        +unavailable(source, reason, latency)$ SourceOutcome
     }
     class DocumentSearchResult {
         +Vin vin
@@ -65,13 +68,12 @@ classDiagram
 | Object | Kind | Fields / values | Notes |
 |---|---|---|---|
 | `Vin` | record | `value` | `Vin.parse(raw)` strips whitespace, checks for 17 ASCII characters from `[A-HJ-NPR-Z0-9]` in either case (no I, O or Q), then upper-cases. Otherwise it throws `InvalidVinException`. `masked()` returns `WVW**********0001`: the first 3 and last 4 characters (A2, A10) |
-| `DocumentType` | enum | `ORDER_FORM`, `SALES_INVOICE`, `FINANCE_AGREEMENT`, `PART_EXCHANGE`, `REGISTRATION_DOCUMENT`, `WARRANTY`, `JOB_CARD`, `SERVICE_INVOICE`, `VEHICLE_HEALTH_CHECK`, `MOT_CERTIFICATE`, `SERVICE_HISTORY`, `OTHER` | Unknown source codes map to `OTHER`. The raw code is kept in `sourceType` |
-| `Document` | record | `id`, `source`, `sourceDocumentId`, `type`, `sourceType`, `title`, `documentDate` (UTC `Instant`, nullable), `url`, `stale` | The common document format that every adapter produces. `id = source + ":" + sourceDocumentId` |
-| `SourceResult` | sealed interface | `Success(source, documents, latency)` and `Failure(source, reason, latency)` | The raw result of one live call. A call always ends in one of these, never an exception |
-| `SourceOutcome` | record | `source`, `status`, `reason`, `documents`, `latency`, `dataAsOf` | A `SourceResult` after the fallback has been applied. This is what the API reports per source |
+| `DocumentType` | enum | `SALES_INVOICE`, `ORDER_FORM`, `JOB_CARD`, `MOT_CERTIFICATE`, `OTHER` | Unknown source codes map to `OTHER` |
+| `Document` | record | `source`, `sourceDocumentId`, `type`, `title`, `documentDate` (UTC `Instant`, nullable), `url`, `stale` | The common document format that every adapter produces. `id()` returns `source:sourceDocumentId`. `asStale()` returns a copy marked stale |
+| `SourceOutcome` | record | `source`, `status`, `reason`, `documents`, `latency`, `dataAsOf` | What one source contributed, and what the API reports per source. Always created with its factory: `ok`, `stale` or `unavailable`. A source call always ends in one of these, never an exception |
 | `SourceStatus` | enum | `OK`, `STALE`, `UNAVAILABLE` | `STALE` means the fallback copy was used |
 | `FailureReason` | enum | `TIMEOUT`, `ERROR` | `TIMEOUT` is a connect or read timeout in the adapter, or the service's 2 s deadline. `ERROR` covers refused connections, 5xx after the retry, and unreadable data |
-| `SourceException` | runtime exception | `reason` (`FailureReason`) | Thrown by an adapter's `fetch`. The service turns it into `Failure(source, reason, latency)` |
+| `SourceException` | runtime exception | `reason` (`FailureReason`) | Thrown by an adapter's `fetch`. The service turns it into `SourceOutcome.stale` or `unavailable` |
 | `DocumentSearchResult` | record | `vin`, `documents`, `sources` | `partial()` and `outcome()` are derived from the fields, never stored |
 | `SearchOutcome` | enum | `COMPLETE`, `PARTIAL`, `FAILED` | Written to the audit row and mapped to the HTTP status |
 | `Caller` | record | `userId`, `dealershipId` | From the gateway headers (A1) |
@@ -89,16 +91,16 @@ public interface DocumentSource {
 
 Spring injects every `DocumentSource` bean into `DocumentSearchService` as a `List<DocumentSource>`. A third source is one new class implementing this interface. No enum, switch or service code changes (NFR5).
 
-## Invariants (each one is a unit test)
+## Invariants
 
 1. A `Vin` object is always valid and normalised. Invalid input never gets past `Vin.parse`.
 2. `Document.id` is unique in a result. Duplicates are removed within a source only (A6).
 3. Documents are sorted newest first. Undated documents come last, and ties are broken by `source`, then `sourceDocumentId`, so the order is always the same (A7).
-4. `stale` is `true` only for documents that came from a snapshot.
-5. Per source:
-   - `OK` has no `reason` and no `dataAsOf`
-   - `STALE` has both
-   - `UNAVAILABLE` has a `reason` and no documents
+4. `SourceOutcome.stale` marks every document stale. It's the only factory that does.
+5. Each `SourceOutcome` factory takes only the fields its status has:
+   - `ok` has no `reason` and no `dataAsOf`
+   - `stale` has both
+   - `unavailable` has a `reason` and no documents
 6. `partial()` is `true` when any source isn't `OK`.
 7. `outcome()` is:
    - `COMPLETE` when all sources are `OK`

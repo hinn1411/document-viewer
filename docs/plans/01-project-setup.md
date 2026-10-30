@@ -54,7 +54,7 @@ io.github.hinn1411.docviewer
 ├── search/                  Document search service
 │   ├── DocumentSearchService.java   parallel calls, fallback, audit
 │   ├── ResultMerger.java            dedupe, sort, per-source status (pure function)
-│   └── model/                       Vin, Document, SourceResult, … (see 05-domain-model.md)
+│   └── model/                       Vin, Document, SourceOutcome, … (see 05-domain-model.md)
 ├── source/                  Source system adapters
 │   ├── DocumentSource.java          the one interface: name() and fetch(vin)
 │   ├── SourceException.java         carries a FailureReason (TIMEOUT or ERROR)
@@ -156,7 +156,7 @@ The two mocks deliberately return different shapes (assumption A4), so each adap
 
 ## Source type codes
 
-The stubs use these codes. Any other code maps to `OTHER`, and the raw code is kept in `sourceType`.
+The stubs use these codes. Any other code maps to `OTHER`.
 
 | Source | Code | `DocumentType` |
 |---|---|---|

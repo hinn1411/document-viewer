@@ -12,7 +12,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 
 **P1 Domain**
 - [x] **T05** VIN value object
-- [ ] **T06** Result merger
+- [x] **T06** Result merger
 
 **P2 Source systems**
 - [ ] **T07** Sales System adapter
@@ -112,7 +112,7 @@ Serves FR3, A6, A7 · est 2 h · depends on T05 · see invariants 2–7 in [`05-
 3. Given outcomes `OK` + `STALE`, then `partial` is true and `outcome` is `PARTIAL`. All `OK` gives `COMPLETE`. No `OK` or `STALE` gives `FAILED`.
 4. Every document keeps its `source`.
 
-**Tests first:** `ResultMergerTest.sortsNewestFirstUndatedLast`, `dedupesWithinSourceOnly`, `partialWhenAnySourceNotOk`, `failedWhenNoSourceHasData`, `keepsSourceOnEveryDocument`
+**Tests first:** `ResultMergerTest.sortsNewestFirstUndatedLast`, `breaksTiesBySourceThenSourceDocumentId`, `dedupesWithinSourceOnly`, `derivesOutcomeAndPartialFromStatuses`, `keepsSourceStaleFlagAndEveryOutcome`
 
 **Files:** `search/ResultMerger.java`, `search/model/*`
 
@@ -133,6 +133,8 @@ Serves FR2, A3, A4, NFR5 · est 3 h · depends on T04, T05
 **Tests first:** `SalesSystemAdapterIT.mapsNestedDealsToDocuments`, `mapsUnknownTypeToOther`, `dropsNonHttpsLinks`, `throwsErrorOnUnreadableBody`, `retriesOnceOn503`, `throwsTimeoutAndDoesNotRetrySlowRead`, plus `RetryOnTransientErrorTest` (true for 502/503/504 and refused connections, false for timeouts)
 
 **Decide in `/frame-task`:** does a 404 mean "no documents" or an error?
+
+**From the T06 review:** `ResultMerger`'s tie-break needs a non-null `sourceDocumentId`. The brief should cover dropping an item with no ID (design doc §4.2).
 
 **Design note:** the retry is Spring Framework 7's `@Retryable(includes = SourceException.class, predicate = RetryOnTransientError.class, maxRetries = 1, delay = 100)` on `fetch`, with `@EnableResilientMethods` on a config class (see [`01-project-setup.md`](01-project-setup.md#configuration-applicationyml)). It works through a proxy, so it applies only when another bean calls `fetch`, as `DocumentSearchService` does.
 
@@ -155,14 +157,14 @@ Serves FR2, NFR1, NFR2 · est 4 h · depends on T06, T07, T08
 
 **Done when**
 1. Given two sources that each take 1 s, then the search finishes in **under 1.5 s**. This proves the calls run in parallel.
-2. Given the Service source takes 5 s, then the search returns within **2.5 s**. Sales is `OK` and Service is a `Failure(TIMEOUT)`.
+2. Given the Service source takes 5 s, then the search returns within **2.5 s**. Sales is `OK` and Service is `UNAVAILABLE` with reason `TIMEOUT`.
 3. Given one source throws, then the other source's documents are still returned. One failure never fails the whole search.
-4. Given any mix of results, then every source ends as exactly one `SourceResult`, never an exception.
+4. Given any mix of results, then every source ends as exactly one `SourceOutcome`, never an exception.
 
 **Tests first:** `DocumentSearchServiceTest.callsSourcesInParallel`, `timesOutSlowSourceAt2s`, `oneFailureDoesNotHideOtherSource`, `everySourceEndsWithAResult` (unit tests with fake `DocumentSource`s and a fixed `Clock`). Then `DocumentSearchIT.serviceTimeoutGivesPartialResult` against WireMock.
 
 **Design notes:**
-- Use one task per source on a virtual-thread executor with `completeOnTimeout`, and turn each `SourceException` into a `Failure` with its reason.
+- Use one task per source on a virtual-thread executor with `completeOnTimeout`, and turn each `SourceException` into `SourceOutcome.unavailable` with its reason.
 - The adapter's read timeout (1.5 s) normally reports `TIMEOUT` first. The 2 s deadline is the backstop for anything slower, such as a fake source in the unit tests.
 - Measure latency with `System.nanoTime()`.
 - Timing assertions use the margins above: sequential calls would take at least 2 s.
