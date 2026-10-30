@@ -12,7 +12,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 
 **P1 Domain**
 - [x] **T05** VIN value object
-- [ ] **T06** Result merger
+- [x] **T06** Result merger
 
 **P2 Source systems**
 - [ ] **T07** Sales System adapter
@@ -133,6 +133,8 @@ Serves FR2, A3, A4, NFR5 · est 3 h · depends on T04, T05
 **Tests first:** `SalesSystemAdapterIT.mapsNestedDealsToDocuments`, `mapsUnknownTypeToOther`, `dropsNonHttpsLinks`, `throwsErrorOnUnreadableBody`, `retriesOnceOn503`, `throwsTimeoutAndDoesNotRetrySlowRead`, plus `RetryOnTransientErrorTest` (true for 502/503/504 and refused connections, false for timeouts)
 
 **Decide in `/frame-task`:** does a 404 mean "no documents" or an error?
+
+**From the T06 review:** `ResultMerger` relies on `Document.id` being `source:sourceDocumentId`, and its tie-break needs a non-null `sourceDocumentId`. Nothing enforces either yet. The brief should cover dropping an item with no ID (design doc §4.2) and enforcing the ID format where a `Document` is first created.
 
 **Design note:** the retry is Spring Framework 7's `@Retryable(includes = SourceException.class, predicate = RetryOnTransientError.class, maxRetries = 1, delay = 100)` on `fetch`, with `@EnableResilientMethods` on a config class (see [`01-project-setup.md`](01-project-setup.md#configuration-applicationyml)). It works through a proxy, so it applies only when another bean calls `fetch`, as `DocumentSearchService` does.
 
