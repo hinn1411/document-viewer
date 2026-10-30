@@ -11,7 +11,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 - [x] **T04** Docker Compose and mock source systems
 
 **P1 Domain**
-- [ ] **T05** VIN value object
+- [x] **T05** VIN value object
 - [ ] **T06** Result merger
 
 **P2 Source systems**
