@@ -64,7 +64,7 @@ classDiagram
 
 | Object | Kind | Fields / values | Notes |
 |---|---|---|---|
-| `Vin` | record | `value` | `Vin.parse(raw)` trims, upper-cases and checks for 17 characters from `[A-HJ-NPR-Z0-9]` (no I, O or Q). Otherwise it throws `InvalidVinException`. `masked()` returns `WVW**********0001`: the first 3 and last 4 characters (A2, A10) |
+| `Vin` | record | `value` | `Vin.parse(raw)` strips whitespace, checks for 17 ASCII characters from `[A-HJ-NPR-Z0-9]` in either case (no I, O or Q), then upper-cases. Otherwise it throws `InvalidVinException`. `masked()` returns `WVW**********0001`: the first 3 and last 4 characters (A2, A10) |
 | `DocumentType` | enum | `ORDER_FORM`, `SALES_INVOICE`, `FINANCE_AGREEMENT`, `PART_EXCHANGE`, `REGISTRATION_DOCUMENT`, `WARRANTY`, `JOB_CARD`, `SERVICE_INVOICE`, `VEHICLE_HEALTH_CHECK`, `MOT_CERTIFICATE`, `SERVICE_HISTORY`, `OTHER` | Unknown source codes map to `OTHER`. The raw code is kept in `sourceType` |
 | `Document` | record | `id`, `source`, `sourceDocumentId`, `type`, `sourceType`, `title`, `documentDate` (UTC `Instant`, nullable), `url`, `stale` | The common document format that every adapter produces. `id = source + ":" + sourceDocumentId` |
 | `SourceResult` | sealed interface | `Success(source, documents, latency)` and `Failure(source, reason, latency)` | The raw result of one live call. A call always ends in one of these, never an exception |
