@@ -1,0 +1,30 @@
+# Everything the app needs locally. The mocks use the same stub files as the integration tests.
+services:
+  postgres:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: docviewer
+      POSTGRES_USER: docviewer
+      POSTGRES_PASSWORD: docviewer
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U docviewer -d docviewer"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  # The WireMock image has its own health check on /__admin/health
+  sales-api:
+    image: wiremock/wiremock:3.13.2
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./mocks/sales:/home/wiremock:ro
+
+  service-api:
+    image: wiremock/wiremock:3.13.2
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./mocks/service:/home/wiremock:ro

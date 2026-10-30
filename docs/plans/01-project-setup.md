@@ -96,12 +96,10 @@ docviewer:
       base-url: http://localhost:8081
       connect-timeout: 300ms
       read-timeout: 1500ms
-      token: dev-token         # stubbed OAuth 2.0 token, sent as a bearer token (A5)
     service:
       base-url: http://localhost:8082
       connect-timeout: 300ms
       read-timeout: 1500ms
-      token: dev-token
 ```
 
 The retry is set on each adapter's `fetch` method, and `@EnableResilientMethods` is on a config class:
@@ -115,7 +113,6 @@ public List<Document> fetch(Vin vin) { ... }
 **How failures are classified** (design doc §4.2):
 - **Retry:** `RetryOnTransientError` (a `MethodRetryPredicate`) returns `true` only for HTTP 502, 503 and 504 and for refused or reset connections. It returns `false` for timeouts (`SocketTimeoutException` / `HttpTimeoutException` causes), because retrying a slow source adds load to it.
 - **Timeouts:** the adapter turns a connect or read timeout into `SourceException(TIMEOUT)`, and everything else into `SourceException(ERROR)`. The service's 2 s deadline is the backstop for anything slower.
-- **Token:** a real OAuth client-credentials flow is out of scope. The adapters send the configured token.
 
 ## Docker Compose (T04)
 
@@ -124,8 +121,8 @@ public List<Document> fetch(Vin vin) { ... }
 | Service | Image | Port | Purpose |
 |---|---|---|---|
 | `postgres` | `postgres:16` | 5432 | Audit log and snapshots |
-| `sales-api` | `wiremock/wiremock` | 8081 | Mock Sales System, stubs in `mocks/sales/mappings/*.json` |
-| `service-api` | `wiremock/wiremock` | 8082 | Mock Service System, stubs in `mocks/service/mappings/*.json` |
+| `sales-api` | `wiremock/wiremock:3.13.2` | 8081 | Mock Sales System, stubs in `mocks/sales/mappings/*.json` |
+| `service-api` | `wiremock/wiremock:3.13.2` | 8082 | Mock Service System, stubs in `mocks/service/mappings/*.json` |
 
 Each `mocks/<source>/` folder is mounted as WireMock's root (`/home/wiremock`), so the `mappings/` (and optional `__files/`) layout works for the Docker image and the JUnit extension alike.
 
@@ -156,6 +153,17 @@ The two mocks deliberately return different shapes (assumption A4), so each adap
   { "recordId": 778, "category": "JOB_CARD", "description": "60,000 km service", "completedAt": 1790757900, "fileUrl": "https://service.example.com/files/778.pdf" }
 ]
 ```
+
+## Source type codes
+
+The stubs use these codes. Any other code maps to `OTHER`, and the raw code is kept in `sourceType`.
+
+| Source | Code | `DocumentType` |
+|---|---|---|
+| Sales | `INV` | `SALES_INVOICE` |
+| Sales | `ORD` | `ORDER_FORM` |
+| Service | `JOB_CARD` | `JOB_CARD` |
+| Service | `MOT` | `MOT_CERTIFICATE` |
 
 ## Demo VINs (WireMock stubs)
 

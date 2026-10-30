@@ -1,0 +1,29 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/service/api/vehicles/WVWZZZ1JZXW000002/records"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": [
+      {
+        "recordId": 780,
+        "category": "JOB_CARD",
+        "description": "60,000 km service",
+        "completedAt": 1790757900,
+        "fileUrl": "https://service.example.com/files/780.pdf"
+      },
+      {
+        "recordId": 781,
+        "category": "MOT",
+        "description": "MOT certificate",
+        "completedAt": 1790761500,
+        "fileUrl": "https://service.example.com/files/781.pdf"
+      }
+    ],
+    "fixedDelayMilliseconds": 5000
+  }
+}

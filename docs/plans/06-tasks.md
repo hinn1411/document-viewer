@@ -8,7 +8,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 - [x] **T01** Scaffold the Spring Boot project
 - [x] **T02** Claude Code harness
 - [x] **T03** CI pipeline
-- [ ] **T04** Docker Compose and mock source systems
+- [x] **T04** Docker Compose and mock source systems
 
 **P1 Domain**
 - [ ] **T05** VIN value object
@@ -121,7 +121,7 @@ Serves FR3, A6, A7 · est 2 h · depends on T05 · see invariants 2–7 in [`05-
 ## P2 Source systems
 
 ### T07: Sales System adapter
-Serves FR2, A3, A4, A5, NFR5 · est 3 h · depends on T04, T05
+Serves FR2, A3, A4, NFR5 · est 3 h · depends on T04, T05
 
 **Done when**
 1. Given the nested deals response, then each document becomes a `Document` with `id` `SALES:INV-1001`, a mapped `type` (`INV` → `SALES_INVOICE`, unknown → `OTHER`) and `createdOn` `14/03/2025` read as the start of that day in the configured dealership time zone, converted to UTC.
@@ -129,9 +129,8 @@ Serves FR2, A3, A4, A5, NFR5 · est 3 h · depends on T04, T05
 3. Given a response that can't be parsed, then `fetch` throws `SourceException` with reason `ERROR`.
 4. Given 503 followed by 200, then the call succeeds after **one** retry. Given 503 twice, then it throws with reason `ERROR`, and WireMock saw exactly 2 requests.
 5. Given a read longer than 1.5 s, then it throws with reason **`TIMEOUT`** and **isn't retried** (WireMock saw 1 request).
-6. The request carries `Authorization: Bearer <token>`, where the token comes from config (A5).
 
-**Tests first:** `SalesSystemAdapterIT.mapsNestedDealsToDocuments`, `mapsUnknownTypeToOther`, `dropsNonHttpsLinks`, `throwsErrorOnUnreadableBody`, `retriesOnceOn503`, `throwsTimeoutAndDoesNotRetrySlowRead`, `sendsBearerToken`, plus `RetryOnTransientErrorTest` (true for 502/503/504 and refused connections, false for timeouts)
+**Tests first:** `SalesSystemAdapterIT.mapsNestedDealsToDocuments`, `mapsUnknownTypeToOther`, `dropsNonHttpsLinks`, `throwsErrorOnUnreadableBody`, `retriesOnceOn503`, `throwsTimeoutAndDoesNotRetrySlowRead`, plus `RetryOnTransientErrorTest` (true for 502/503/504 and refused connections, false for timeouts)
 
 **Decide in `/frame-task`:** does a 404 mean "no documents" or an error?
 
@@ -144,7 +143,7 @@ Serves FR2, A4, NFR5 · est 2 h · depends on T07 (same pattern)
 
 **Done when**
 1. Given the flat records response, then `recordId` 778 becomes `SERVICE:778`, `completedAt` epoch seconds becomes a UTC `Instant`, and `category` maps as in the type table.
-2. Criteria 2–6 from T07 hold for this adapter too.
+2. Criteria 2–5 from T07 hold for this adapter too.
 3. **No other class changed to add it** (NFR5). The reviewer checks this.
 
 **Tests first:** `ServiceSystemAdapterIT.mapsFlatRecordsToDocuments`, `convertsEpochSecondsToUtc`, plus the T07 failure tests for this source
@@ -256,6 +255,8 @@ Serves the brief's deliverables · est 4 h · depends on T12 (and T13–T15 if t
    5. both down → 503
    6. the trace in Jaeger and the Grafana dashboard
 4. The red/green commit pairs are visible in `git log`.
+
+**Design note:** `…0003` and `…0004` return 503 on every call, so the stack can never save a snapshot for them. The fallback demo step needs a seeded snapshot row or a temporary stub through WireMock's admin API.
 
 ---
 

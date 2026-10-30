@@ -1,0 +1,41 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/sales/v1/deals",
+    "queryParameters": {
+      "vin": {
+        "equalTo": "WVWZZZ1JZXW000003"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "vin": "WVWZZZ1JZXW000003",
+      "deals": [
+        {
+          "dealNumber": "D-20250502-03",
+          "documents": [
+            {
+              "docRef": "INV-1003",
+              "docType": "INV",
+              "name": "Sales invoice",
+              "createdOn": "14/03/2025",
+              "link": "https://sales.example.com/docs/INV-1003"
+            },
+            {
+              "docRef": "ORD-1003",
+              "docType": "ORD",
+              "name": "Order form",
+              "createdOn": "10/03/2025",
+              "link": "https://sales.example.com/docs/ORD-1003"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

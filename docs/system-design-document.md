@@ -64,7 +64,6 @@ The brief leaves these points open, so I made the following assumptions.
 | A2 | Search uses the full VIN only: 17 characters, no I, O or Q (ISO 3779), trimmed and upper-cased. The check digit isn't enforced, because only North America requires it |
 | A3 | Each source offers a REST/JSON lookup by VIN that returns document **metadata plus a link** to the file, not the file itself |
 | A4 | The two source APIs return **different shapes** (field names, nesting, date formats, type codes). Their contracts are mine, because they are mocked |
-| A5 | Sources authenticate callers with OAuth 2.0 client credentials (stubbed in the mocks) |
 | A6 | A VIN has tens of documents, so there's no pagination in v1. Each document belongs to exactly one system, so duplicates are only removed within a source |
 | A7 | The list is sorted newest first, with undated documents last. All times are in UTC |
 | A8 | Users expect live data. A copy up to 24 h old is acceptable **only as a labelled fallback** when a source fails |

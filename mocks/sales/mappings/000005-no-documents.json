@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/sales/v1/deals",
+    "queryParameters": {
+      "vin": {
+        "equalTo": "WVWZZZ1JZXW000005"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "vin": "WVWZZZ1JZXW000005",
+      "deals": []
+    }
+  }
+}

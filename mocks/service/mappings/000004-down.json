@@ -1,0 +1,9 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/service/api/vehicles/WVWZZZ1JZXW000004/records"
+  },
+  "response": {
+    "status": 503
+  }
+}
