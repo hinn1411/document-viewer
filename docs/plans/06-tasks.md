@@ -8,7 +8,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 - [x] **T01** Scaffold the Spring Boot project
 - [x] **T02** Claude Code harness
 - [x] **T03** CI pipeline
-- [ ] **T04** Docker Compose and mock source systems
+- [x] **T04** Docker Compose and mock source systems
 
 **P1 Domain**
 - [ ] **T05** VIN value object
@@ -255,6 +255,8 @@ Serves the brief's deliverables · est 4 h · depends on T12 (and T13–T15 if t
    5. both down → 503
    6. the trace in Jaeger and the Grafana dashboard
 4. The red/green commit pairs are visible in `git log`.
+
+**Design note:** `…0003` and `…0004` return 503 on every call, so the stack can never save a snapshot for them. The fallback demo step needs a seeded snapshot row or a temporary stub through WireMock's admin API.
 
 ---
 

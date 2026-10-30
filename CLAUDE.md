@@ -11,6 +11,7 @@ Java 21 · Spring Boot 4.1 (Spring Framework 7) · PostgreSQL 16 · Flyway · `J
 - `./mvnw verify`: unit + integration tests (needs Docker for Testcontainers)
 - `docker compose up`: PostgreSQL and the two mock sources (from T04)
 - `bash scripts/test-hooks.sh`: checks the harness hooks
+- `bash scripts/test-compose.sh`: checks the Compose stack and demo VINs (needs ports 5432, 8081 and 8082 free)
 
 ## Rules
 Code rules live in `.claude/rules/` and load when you work on matching files:
