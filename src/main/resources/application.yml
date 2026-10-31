@@ -10,6 +10,7 @@ spring:
     password: docviewer
 
 docviewer:
+  source-deadline: 2s # per source, then TIMEOUT
   dealership-zone: Europe/London # for date-only values such as the Sales createdOn
   sources:
     sales:
