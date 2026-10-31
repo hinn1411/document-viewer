@@ -1,6 +1,7 @@
 package io.github.hinn1411.docviewer.search;
 
 import io.github.hinn1411.docviewer.config.DocViewerProperties;
+import io.github.hinn1411.docviewer.search.model.Caller;
 import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
 import io.github.hinn1411.docviewer.search.model.FailureReason;
 import io.github.hinn1411.docviewer.search.model.SourceOutcome;
@@ -30,14 +31,15 @@ public class DocumentSearchService {
       List<DocumentSource> sources,
       ResultMerger merger,
       ExecutorService sourceCallExecutor,
-      DocViewerProperties properties) {
+      DocViewerProperties properties,
+      AccessAuditor auditor) {
     this.sources = sources;
     this.merger = merger;
     this.sourceCallExecutor = sourceCallExecutor;
     this.deadline = properties.sourceDeadline();
   }
 
-  public DocumentSearchResult search(Vin vin) {
+  public DocumentSearchResult search(Vin vin, Caller caller) {
     // Start every call before waiting for any of them, so they run in parallel.
     List<CompletableFuture<SourceOutcome>> calls =
         sources.stream().map(source -> callWithDeadline(source, vin)).toList();

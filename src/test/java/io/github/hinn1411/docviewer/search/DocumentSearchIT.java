@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.github.hinn1411.docviewer.config.ExecutorConfig;
 import io.github.hinn1411.docviewer.config.SourceClientsConfig;
+import io.github.hinn1411.docviewer.search.model.Caller;
 import io.github.hinn1411.docviewer.search.model.Document;
 import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
 import io.github.hinn1411.docviewer.search.model.FailureReason;
@@ -23,6 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /** T09: the real adapters against the demo stubs, where the Service mock answers after 5 s. */
 @SpringBootTest(
@@ -32,6 +34,7 @@ import org.springframework.test.context.DynamicPropertySource;
       SalesSystemAdapter.class,
       ServiceSystemAdapter.class,
       ResultMerger.class,
+      AccessAuditor.class,
       DocumentSearchService.class
     },
     webEnvironment = WebEnvironment.NONE)
@@ -57,13 +60,17 @@ class DocumentSearchIT {
     registry.add("docviewer.sources.service.base-url", serviceApi::baseUrl);
   }
 
+  // The audit has its own tests, and this test needs no database.
+  @MockitoBean AccessAuditor auditor;
+
   @Autowired DocumentSearchService service;
 
   @Test
   void serviceTimeoutGivesPartialResult() {
     long start = System.nanoTime();
 
-    DocumentSearchResult result = service.search(VIN_SERVICE_SLOW);
+    DocumentSearchResult result =
+        service.search(VIN_SERVICE_SLOW, new Caller("user-1", "dealer-1"));
 
     assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofMillis(2_500));
     assertThat(result.outcome()).isEqualTo(SearchOutcome.PARTIAL);
