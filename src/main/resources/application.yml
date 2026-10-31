@@ -16,6 +16,10 @@ docviewer:
       base-url: http://localhost:8081
       connect-timeout: 300ms
       read-timeout: 1500ms
+    service:
+      base-url: http://localhost:8082
+      connect-timeout: 300ms
+      read-timeout: 1500ms
 
 management:
   endpoints:

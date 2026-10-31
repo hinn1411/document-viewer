@@ -16,7 +16,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 
 **P2 Source systems**
 - [x] **T07** Sales System adapter
-- [ ] **T08** Service System adapter
+- [x] **T08** Service System adapter
 - [ ] **T09** Parallel calls with a deadline
 
 **P3 Persistence**
