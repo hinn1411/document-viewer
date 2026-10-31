@@ -9,6 +9,14 @@ spring:
     username: docviewer
     password: docviewer
 
+docviewer:
+  dealership-zone: Europe/London # for date-only values such as the Sales createdOn
+  sources:
+    sales:
+      base-url: http://localhost:8081
+      connect-timeout: 300ms
+      read-timeout: 1500ms
+
 management:
   endpoints:
     web:
