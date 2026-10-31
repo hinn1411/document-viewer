@@ -1,16 +1,54 @@
 package io.github.hinn1411.docviewer.source;
 
 import io.github.hinn1411.docviewer.search.model.FailureReason;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
+import java.net.http.HttpTimeoutException;
+import java.util.Set;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
-/** A failed source call. Stub for T07's red step. */
+/**
+ * A failed source call. It keeps no cause, because Spring's I/O error messages contain the request
+ * URL, and so the full VIN.
+ */
 public class SourceException extends RuntimeException {
 
+  private static final Set<Integer> TRANSIENT_STATUSES = Set.of(502, 503, 504);
+
+  private final FailureReason reason;
+  private final boolean retryable;
+
+  public SourceException(FailureReason reason, String message) {
+    this(reason, false, message);
+  }
+
+  private SourceException(FailureReason reason, boolean retryable, String message) {
+    super(message);
+    this.reason = reason;
+    this.retryable = retryable;
+  }
+
+  /** Classifies a failed HTTP call. Timeouts are never retried: that adds load to a slow source. */
   public static SourceException from(RestClientException failure) {
-    throw new UnsupportedOperationException("T07 green step");
+    FailureReason reason =
+        failure.contains(SocketTimeoutException.class)
+                || failure.contains(HttpTimeoutException.class)
+            ? FailureReason.TIMEOUT
+            : FailureReason.ERROR;
+    boolean retryable =
+        failure.contains(ConnectException.class)
+            || failure instanceof RestClientResponseException response
+                && TRANSIENT_STATUSES.contains(response.getStatusCode().value());
+    return new SourceException(
+        reason, retryable, "Source call failed: " + failure.getClass().getSimpleName());
   }
 
   public FailureReason reason() {
-    throw new UnsupportedOperationException("T07 green step");
+    return reason;
+  }
+
+  public boolean retryable() {
+    return retryable;
   }
 }

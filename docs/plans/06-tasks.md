@@ -15,7 +15,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 - [x] **T06** Result merger
 
 **P2 Source systems**
-- [ ] **T07** Sales System adapter
+- [x] **T07** Sales System adapter
 - [ ] **T08** Service System adapter
 - [ ] **T09** Parallel calls with a deadline
 
@@ -136,7 +136,7 @@ Serves FR2, A3, A4, NFR5 · est 3 h · depends on T04, T05
 
 **From the T06 review:** `ResultMerger`'s tie-break needs a non-null `sourceDocumentId`. The brief should cover dropping an item with no ID (design doc §4.2).
 
-**Design note:** the retry is Spring Framework 7's `@Retryable(includes = SourceException.class, predicate = RetryOnTransientError.class, maxRetries = 1, delay = 100)` on `fetch`, with `@EnableResilientMethods` on a config class (see [`01-project-setup.md`](01-project-setup.md#configuration-applicationyml)). It works through a proxy, so it applies only when another bean calls `fetch`, as `DocumentSearchService` does.
+**Design note:** the retry is Spring Framework 7's `@Retryable(includes = SourceException.class, predicate = RetryOnTransientError.class, maxRetries = 1, delay = 100)` on the adapter **class** (not `fetch`, where the JDK proxy misses it), with `@EnableResilientMethods` on a config class (see [`01-project-setup.md`](01-project-setup.md#configuration-applicationyml)). It works through a proxy, so it applies only when another bean calls `fetch`, as `DocumentSearchService` does. The adapter builds its own client with `SourceClientsConfig.restClient(...)`, so T08 needs no new bean, only its `application.yml` entry.
 
 **Files:** `source/DocumentSource.java`, `source/SourceException.java`, `source/RetryOnTransientError.java`, `source/sales/*`, `config/SourceClientsConfig.java`
 

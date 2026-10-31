@@ -58,9 +58,9 @@ io.github.hinn1411.docviewer
 ├── source/                  Source system adapters
 │   ├── DocumentSource.java          the one interface: name() and fetch(vin)
 │   ├── SourceException.java         carries a FailureReason (TIMEOUT or ERROR)
-│   ├── RetryOnTransientError.java   retry predicate: 5xx and connection errors, never timeouts
-│   ├── sales/SalesSystemAdapter.java + SalesResponse.java (its own shape)
-│   └── service/ServiceSystemAdapter.java + ServiceResponse.java
+│   ├── RetryOnTransientError.java   retry predicate: 502/503/504 and refused connections, never timeouts
+│   ├── sales/SalesSystemAdapter.java   its response shape is private records inside it
+│   └── service/ServiceSystemAdapter.java
 ├── persistence/             Repository
 │   ├── AuditRepository.java
 │   ├── SnapshotRepository.java
@@ -102,17 +102,18 @@ docviewer:
       read-timeout: 1500ms
 ```
 
-The retry is set on each adapter's `fetch` method, and `@EnableResilientMethods` is on a config class:
+The retry is set on each adapter **class**, and `@EnableResilientMethods` is on a config class. It can't go on the adapter's `fetch`: with a JDK proxy, Spring's interceptor checks only the interface method and the target class, so it would be missed and nothing would be retried.
 
 ```java
 @Retryable(includes = SourceException.class, predicate = RetryOnTransientError.class,
            maxRetries = 1, delay = 100)   // 1 call + 1 retry, 100 ms apart
-public List<Document> fetch(Vin vin) { ... }
+public class SalesSystemAdapter implements DocumentSource { ... }
 ```
 
 **How failures are classified** (design doc §4.2):
-- **Retry:** `RetryOnTransientError` (a `MethodRetryPredicate`) returns `true` only for HTTP 502, 503 and 504 and for refused or reset connections. It returns `false` for timeouts (`SocketTimeoutException` / `HttpTimeoutException` causes), because retrying a slow source adds load to it.
-- **Timeouts:** the adapter turns a connect or read timeout into `SourceException(TIMEOUT)`, and everything else into `SourceException(ERROR)`. The service's 2 s deadline is the backstop for anything slower.
+- **Retry:** `SourceException.from` decides, and `RetryOnTransientError` (a `MethodRetryPredicate`) passes that on. Only HTTP 502, 503 and 504 and refused connections are retried. Timeouts (`SocketTimeoutException` or `HttpTimeoutException` anywhere in the cause chain) aren't, because retrying a slow source adds load to it. Reset connections aren't either: the JDK client has no specific exception for them.
+- **No cause:** `SourceException` keeps no cause, because Spring's I/O error messages contain the URL, and so the full VIN.
+- **Timeouts:** the adapter turns a connect or read timeout into `SourceException(TIMEOUT)`, and everything else into `SourceException(ERROR)`. The clients use `SimpleClientHttpRequestFactory`, because Spring's JDK client reports a stalled body only as `IOException: closed`. Its read timeout applies per read, so the service's 2 s deadline is the backstop for anything slower.
 
 ## Docker Compose (T04)
 
