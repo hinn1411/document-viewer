@@ -57,11 +57,13 @@ io.github.hinn1411.docviewer
 │   └── model/                       Vin, Document, SourceOutcome, … (see 05-domain-model.md)
 ├── source/                  Source system adapters
 │   ├── DocumentSource.java          the one interface: name() and fetch(vin)
-│   ├── BaseSourceAdapter.java       what adapters share: the call, retry, failures, dropping bad items
-│   ├── SourceException.java         carries a FailureReason (TIMEOUT or ERROR)
-│   ├── RetryOnTransientError.java   retry predicate: 502/503/504 and refused connections, never timeouts
-│   ├── sales/SalesSystemAdapter.java   its response shape is private records inside it
-│   └── service/ServiceSystemAdapter.java
+│   ├── adapter/
+│   │   ├── BaseSourceAdapter.java   what adapters share: the call, retry, failures, dropping bad items
+│   │   ├── sales/SalesSystemAdapter.java   its response shape is records inside it
+│   │   └── service/ServiceSystemAdapter.java
+│   └── failure/
+│       ├── SourceException.java     carries a FailureReason (TIMEOUT or ERROR) and whether to retry
+│       └── RetryOnTransientError.java   gives @Retryable that decision
 ├── persistence/             Repository
 │   ├── AuditRepository.java
 │   ├── SnapshotRepository.java

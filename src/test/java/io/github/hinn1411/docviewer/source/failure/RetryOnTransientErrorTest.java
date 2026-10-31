@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.source;
+package io.github.hinn1411.docviewer.source.failure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
