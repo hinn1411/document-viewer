@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.source;
+package io.github.hinn1411.docviewer.source.failure;
 
 import io.github.hinn1411.docviewer.search.model.FailureReason;
 import java.net.ConnectException;

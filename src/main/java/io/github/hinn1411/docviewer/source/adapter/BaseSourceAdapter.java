@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.source;
+package io.github.hinn1411.docviewer.source.adapter;
 
 import io.github.hinn1411.docviewer.config.DocViewerProperties;
 import io.github.hinn1411.docviewer.config.SourceClientsConfig;
@@ -6,6 +6,9 @@ import io.github.hinn1411.docviewer.search.model.Document;
 import io.github.hinn1411.docviewer.search.model.DocumentType;
 import io.github.hinn1411.docviewer.search.model.FailureReason;
 import io.github.hinn1411.docviewer.search.model.Vin;
+import io.github.hinn1411.docviewer.source.DocumentSource;
+import io.github.hinn1411.docviewer.source.failure.RetryOnTransientError;
+import io.github.hinn1411.docviewer.source.failure.SourceException;
 import java.net.URI;
 import java.time.DateTimeException;
 import java.time.Instant;

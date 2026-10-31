@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.source.sales;
+package io.github.hinn1411.docviewer.source.adapter.sales;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -10,7 +10,7 @@ import io.github.hinn1411.docviewer.search.model.Document;
 import io.github.hinn1411.docviewer.search.model.DocumentType;
 import io.github.hinn1411.docviewer.search.model.FailureReason;
 import io.github.hinn1411.docviewer.search.model.Vin;
-import io.github.hinn1411.docviewer.source.BaseSourceAdapterIT;
+import io.github.hinn1411.docviewer.source.adapter.BaseSourceAdapterIT;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;

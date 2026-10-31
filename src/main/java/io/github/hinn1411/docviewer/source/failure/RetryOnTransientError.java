@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.source;
+package io.github.hinn1411.docviewer.source.failure;
 
 import java.lang.reflect.Method;
 import org.springframework.resilience.retry.MethodRetryPredicate;

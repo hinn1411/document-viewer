@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.source;
+package io.github.hinn1411.docviewer.source.adapter;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -15,6 +15,8 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.github.hinn1411.docviewer.search.model.FailureReason;
 import io.github.hinn1411.docviewer.search.model.Vin;
+import io.github.hinn1411.docviewer.source.DocumentSource;
+import io.github.hinn1411.docviewer.source.failure.SourceException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

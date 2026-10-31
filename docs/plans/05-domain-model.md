@@ -1,6 +1,6 @@
 # 05. Domain model
 
-Plain Java records and enums in `search/model/`, plus one interface, `DocumentSource`, and its abstract `BaseSourceAdapter` in `source/`. They have no framework annotations, so they're tested with fast unit tests. Covers tasks **T05**, **T06** and **T09**.
+Plain Java records and enums in `search/model/`, plus one interface, `DocumentSource`, in `source/`, and its abstract `BaseSourceAdapter` in `source/adapter/`. They have no framework annotations, so they're tested with fast unit tests. Covers tasks **T05**, **T06** and **T09**.
 
 ## Class diagram
 
