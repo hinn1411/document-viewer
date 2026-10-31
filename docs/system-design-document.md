@@ -183,10 +183,13 @@ sequenceDiagram
     alt no answer within 2 s
         Note over S: stop waiting
         S->>S: mark TIMEOUT
-    else error response
+    else 502, 503, 504 or refused connection
         SERV-->>VA: error
         VA->>SERV: retry once
         SERV-->>VA: error again
+        VA-->>S: ERROR
+    else any other error
+        SERV-->>VA: error
         VA-->>S: ERROR
     end
     S->>R: read last saved copy for VIN and source
@@ -205,7 +208,7 @@ sequenceDiagram
 | 1 | Invalid VIN | Rejects it before calling any system | **400** |
 | 2 | Missing caller identity | Rejects the request | **401** |
 | 3 | Source too slow (no answer in 2 s) | Stops waiting and uses the fallback copy | **200**, `partial: true`, reason `TIMEOUT` |
-| 4 | Source returns an error or can't be reached | Retries once, then uses the fallback copy | **200**, `partial: true`, reason `ERROR` |
+| 4 | Source returns an error or can't be reached | Retries once on 502, 503, 504 or a refused connection, because those are often short-lived. Any other error isn't retried. Then uses the fallback copy | **200**, `partial: true`, reason `ERROR` |
 | 5 | Source returns data that can't be read | Treats an unreadable response as an error. A single bad item is dropped and the response stays complete | **200**, `partial: true` if the whole response was unreadable |
 | 6 | Both sources fail, no fallback copy | Records the failed access | **503**, with each source's status |
 | 7 | Audit can't be saved | Returns no documents, because an unrecorded access isn't allowed | **503** |
