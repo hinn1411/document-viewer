@@ -46,7 +46,7 @@ The red and green commits make the test-first order visible in the git history.
 |---|---|---|
 | P0 Foundation | T01–T04 | done |
 | P1 Domain | T05–T06 | done |
-| P2 Source systems | T07–T09 | in progress |
+| P2 Source systems | T07–T09 | done |
 | P3 Persistence | T10–T11 | todo |
 | P4 API | T12 | todo |
 | P5 Observability | T13–T15 | todo |

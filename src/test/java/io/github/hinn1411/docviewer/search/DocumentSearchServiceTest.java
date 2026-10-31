@@ -51,6 +51,9 @@ class DocumentSearchServiceTest {
     assertThat(elapsedSince(start)).isLessThan(Duration.ofMillis(1_500));
     assertThat(result.outcome()).isEqualTo(SearchOutcome.COMPLETE);
     assertThat(result.documents()).extracting(Document::source).contains("SALES", "SERVICE");
+    assertThat(result.sources())
+        .extracting(SourceOutcome::latency)
+        .allSatisfy(latency -> assertThat(latency).isGreaterThanOrEqualTo(Duration.ofSeconds(1)));
   }
 
   @Test
@@ -60,7 +63,7 @@ class DocumentSearchServiceTest {
     DocumentSearchResult result =
         search(answers("SALES", document("SALES")), slow("SERVICE", Duration.ofSeconds(5)));
 
-    assertThat(elapsedSince(start)).isLessThan(Duration.ofMillis(2_500));
+    assertThat(elapsedSince(start)).isBetween(DEADLINE, Duration.ofMillis(2_500));
     SourceOutcome service = result.sources().getLast();
     assertThat(result.sources().getFirst().status()).isEqualTo(SourceStatus.OK);
     assertThat(service.status()).isEqualTo(SourceStatus.UNAVAILABLE);
@@ -78,6 +81,7 @@ class DocumentSearchServiceTest {
 
     assertThat(result.documents()).extracting(Document::source).containsExactly("SALES");
     assertThat(result.outcome()).isEqualTo(SearchOutcome.PARTIAL);
+    assertThat(result.sources().getLast().reason()).isEqualTo(FailureReason.ERROR);
   }
 
   @Test
