@@ -1,6 +1,6 @@
 # 05. Domain model
 
-Plain Java records and enums in `search/model/`, plus one interface, `DocumentSource`, in `source/`. They have no framework annotations, so they're tested with fast unit tests. Covers tasks **T05**, **T06** and **T09**.
+Plain Java records and enums in `search/model/`, plus one interface, `DocumentSource`, and its abstract `BaseSourceAdapter` in `source/`. They have no framework annotations, so they're tested with fast unit tests. Covers tasks **T05**, **T06** and **T09**.
 
 ## Class diagram
 
@@ -59,6 +59,15 @@ classDiagram
     DocumentSearchResult "1" --> "*" Document
     DocumentSearchResult "1" --> "*" SourceOutcome
     SourceOutcome --> SourceStatus
+    class BaseSourceAdapter~I~ {
+        <<abstract>>
+        +fetch(Vin vin) List~Document~
+        #readItems(RestClient client, Vin vin) List~I~
+        #toDocument(I item) Document
+    }
+    DocumentSource <|.. BaseSourceAdapter
+    BaseSourceAdapter <|-- SalesSystemAdapter
+    BaseSourceAdapter <|-- ServiceSystemAdapter
     SourceOutcome --> FailureReason
     DocumentSource ..> Document : returns
 ```
@@ -89,7 +98,7 @@ public interface DocumentSource {
 }
 ```
 
-Spring injects every `DocumentSource` bean into `DocumentSearchService` as a `List<DocumentSource>`. A third source is one new class implementing this interface. No enum, switch or service code changes (NFR5).
+Spring injects every `DocumentSource` bean into `DocumentSearchService` as a `List<DocumentSource>`. Each adapter extends `BaseSourceAdapter`, which holds the call, the retry, failure handling and dropping bad items. An adapter only reads its response into items (`readItems`) and maps one item (`toDocument`). A third source is one new class extending it. No enum, switch or service code changes (NFR5).
 
 ## Invariants
 

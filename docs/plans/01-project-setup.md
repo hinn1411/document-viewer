@@ -57,6 +57,7 @@ io.github.hinn1411.docviewer
 │   └── model/                       Vin, Document, SourceOutcome, … (see 05-domain-model.md)
 ├── source/                  Source system adapters
 │   ├── DocumentSource.java          the one interface: name() and fetch(vin)
+│   ├── BaseSourceAdapter.java       what adapters share: the call, retry, failures, dropping bad items
 │   ├── SourceException.java         carries a FailureReason (TIMEOUT or ERROR)
 │   ├── RetryOnTransientError.java   retry predicate: 502/503/504 and refused connections, never timeouts
 │   ├── sales/SalesSystemAdapter.java   its response shape is private records inside it
@@ -102,12 +103,12 @@ docviewer:
       read-timeout: 1500ms
 ```
 
-The retry is set on each adapter **class**, and `@EnableResilientMethods` is on a config class. It can't go on the adapter's `fetch`: with a JDK proxy, Spring's interceptor checks only the interface method and the target class, so it would be missed and nothing would be retried.
+The retry is set on the `BaseSourceAdapter` **class**, so every adapter gets it, and `@EnableResilientMethods` is on a config class. It can't go on `fetch`: with a JDK proxy, Spring's interceptor checks only the interface method and the target class, so it would be missed and nothing would be retried.
 
 ```java
 @Retryable(includes = SourceException.class, predicate = RetryOnTransientError.class,
            maxRetries = 1, delay = 100)   // 1 call + 1 retry, 100 ms apart
-public class SalesSystemAdapter implements DocumentSource { ... }
+public abstract class BaseSourceAdapter<I> implements DocumentSource { ... }
 ```
 
 **How failures are classified** (design doc §4.2):
