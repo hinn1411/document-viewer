@@ -8,6 +8,8 @@ spring:
     url: jdbc:postgresql://localhost:5432/docviewer
     username: docviewer
     password: docviewer
+    hikari:
+      connection-timeout: 1000 # ms. With the database down, fail fast: the audit can't be saved anyway
 
 docviewer:
   source-deadline: 2s # per source, then TIMEOUT

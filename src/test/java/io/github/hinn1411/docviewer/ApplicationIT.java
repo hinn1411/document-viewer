@@ -30,7 +30,7 @@ class ApplicationIT {
 
   @Test
   void contextLoadsWithMigrations() {
-    // Flyway ran at startup against PostgreSQL (no migrations yet: the first one arrives in T10).
+    // Flyway ran at startup against PostgreSQL, so no migration is left waiting.
     assertThat(flyway.info().pending()).isEmpty();
     String version = jdbcClient.sql("select version()").query(String.class).single();
     assertThat(version).startsWith("PostgreSQL 16");
