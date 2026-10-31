@@ -12,8 +12,10 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
 /** Merges each source's documents into one list, in the same order every time (A6, A7). */
+@Component
 public class ResultMerger {
 
   private static final Comparator<Document> NEWEST_FIRST =

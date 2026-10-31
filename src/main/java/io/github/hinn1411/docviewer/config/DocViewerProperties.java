@@ -8,7 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** The {@code docviewer.*} settings in {@code application.yml}. */
 @ConfigurationProperties("docviewer")
-public record DocViewerProperties(ZoneId dealershipZone, Map<String, SourceClient> sources) {
+public record DocViewerProperties(
+    Duration sourceDeadline, ZoneId dealershipZone, Map<String, SourceClient> sources) {
 
   /** Where one source is and how long to wait for it. */
   public record SourceClient(URI baseUrl, Duration connectTimeout, Duration readTimeout) {}
