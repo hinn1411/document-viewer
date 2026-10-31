@@ -17,7 +17,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Component;
@@ -60,13 +59,12 @@ public class SalesSystemAdapter implements DocumentSource {
   @Override
   public List<Document> fetch(Vin vin) {
     DealsResponse response = callSales(vin);
-    if (response == null || response.deals() == null) {
-      throw new SourceException(FailureReason.ERROR, "Sales response has no deals");
+    if (isUnreadable(response)) {
+      throw new SourceException(FailureReason.ERROR, "Sales response is unreadable");
     }
     return response.deals().stream()
-        .filter(deal -> deal != null && deal.documents() != null)
+        .filter(deal -> deal.documents() != null)
         .flatMap(deal -> deal.documents().stream())
-        .filter(Objects::nonNull)
         .flatMap(item -> toDocument(item).stream())
         .toList();
   }
@@ -83,9 +81,19 @@ public class SalesSystemAdapter implements DocumentSource {
     }
   }
 
+  private static boolean isUnreadable(DealsResponse response) {
+    return response == null
+        || response.deals() == null
+        || response.deals().contains(null)
+        || response.deals().stream()
+            .anyMatch(deal -> deal.documents() != null && deal.documents().contains(null));
+  }
+
   /** Empty for a bad item: one bad item is dropped and the rest of the response is still good. */
   private Optional<Document> toDocument(SalesDocument item) {
-    if (item.docRef() == null || item.docRef().isBlank()) {
+    boolean hasId = item.docRef() != null && !item.docRef().isBlank();
+    boolean hasHttpsLink = item.link() != null && item.link().startsWith("https://");
+    if (!hasId || !hasHttpsLink) {
       return Optional.empty();
     }
     try {
@@ -96,7 +104,7 @@ public class SalesSystemAdapter implements DocumentSource {
               typeOf(item.docType()),
               item.name(),
               parseDate(item.createdOn()),
-              parseHttpsLink(item.link()),
+              URI.create(item.link()),
               false));
     } catch (DateTimeParseException | IllegalArgumentException badItem) {
       return Optional.empty();
@@ -116,17 +124,6 @@ public class SalesSystemAdapter implements DocumentSource {
       return null;
     }
     return LocalDate.parse(createdOn, CREATED_ON).atStartOfDay(dealershipZone).toInstant();
-  }
-
-  private static URI parseHttpsLink(String link) {
-    if (link == null) {
-      throw new IllegalArgumentException("No link");
-    }
-    URI uri = URI.create(link);
-    if (!"https".equalsIgnoreCase(uri.getScheme())) {
-      throw new IllegalArgumentException("Not an https link");
-    }
-    return uri;
   }
 
   private record DealsResponse(List<Deal> deals) {}

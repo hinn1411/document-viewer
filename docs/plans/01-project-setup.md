@@ -111,7 +111,7 @@ public class SalesSystemAdapter implements DocumentSource { ... }
 ```
 
 **How failures are classified** (design doc §4.2):
-- **Retry:** `SourceException.from` decides, and `RetryOnTransientError` (a `MethodRetryPredicate`) passes that on. Only HTTP 502, 503 and 504 and refused connections are retried. Timeouts (`SocketTimeoutException` or `HttpTimeoutException` anywhere in the cause chain) aren't, because retrying a slow source adds load to it. Reset connections aren't either: the JDK client has no specific exception for them.
+- **Retry:** `SourceException.from` decides, and `RetryOnTransientError` (a `MethodRetryPredicate`) passes that on. Only HTTP 502, 503 and 504 and refused connections are retried. Timeouts (`SocketTimeoutException` anywhere in the cause chain) aren't, because retrying a slow source adds load to it. Reset connections aren't either: the JDK client has no specific exception for them.
 - **No cause:** `SourceException` keeps no cause, because Spring's I/O error messages contain the URL, and so the full VIN.
 - **Timeouts:** the adapter turns a connect or read timeout into `SourceException(TIMEOUT)`, and everything else into `SourceException(ERROR)`. The clients use `SimpleClientHttpRequestFactory`, because Spring's JDK client reports a stalled body only as `IOException: closed`. Its read timeout applies per read, so the service's 2 s deadline is the backstop for anything slower.
 

@@ -3,7 +3,6 @@ package io.github.hinn1411.docviewer.source;
 import io.github.hinn1411.docviewer.search.model.FailureReason;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
-import java.net.http.HttpTimeoutException;
 import java.util.Set;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
@@ -33,7 +32,6 @@ public class SourceException extends RuntimeException {
   public static SourceException from(RestClientException failure) {
     FailureReason reason =
         failure.contains(SocketTimeoutException.class)
-                || failure.contains(HttpTimeoutException.class)
             ? FailureReason.TIMEOUT
             : FailureReason.ERROR;
     boolean retryable =

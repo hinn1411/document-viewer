@@ -23,8 +23,6 @@ import io.github.hinn1411.docviewer.search.model.FailureReason;
 import io.github.hinn1411.docviewer.search.model.Vin;
 import io.github.hinn1411.docviewer.source.DocumentSource;
 import io.github.hinn1411.docviewer.source.SourceException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -48,8 +46,8 @@ import org.springframework.test.context.DynamicPropertySource;
 class SalesSystemAdapterIT {
 
   private static final String DEALS_PATH = "/sales/v1/deals";
-  private static final Vin VIN_OK = Vin.parse("WVWZZZ1JZXW000001");
-  private static final Vin VIN_NO_DOCUMENTS = Vin.parse("WVWZZZ1JZXW000005");
+  private static final String LINK = "https://sales.example.com/docs/a";
+  private static final String DATE = "14/03/2025";
   // Outside the demo-VIN table, so each test's own stub is the only one that matches.
   private static final Vin VIN = Vin.parse("WVWZZZ1JZXW000099");
 
@@ -68,7 +66,7 @@ class SalesSystemAdapterIT {
 
   @Test
   void mapsNestedDealsToDocuments() {
-    List<Document> documents = source.fetch(VIN_OK);
+    List<Document> documents = source.fetch(Vin.parse("WVWZZZ1JZXW000001"));
 
     assertThat(source.name()).isEqualTo("SALES");
     assertThat(documents)
@@ -94,13 +92,7 @@ class SalesSystemAdapterIT {
 
   @Test
   void mapsUnknownTypeToOther() {
-    stubDeals(
-        """
-        {"docRef": "A", "docType": "NEW_CODE", "name": "A", "createdOn": "14/03/2025",
-         "link": "https://sales.example.com/docs/A"},
-        {"docRef": "B", "name": "B", "createdOn": "14/03/2025",
-         "link": "https://sales.example.com/docs/B"}
-        """);
+    stubDocuments(item("A", "NEW_CODE", DATE, LINK), item("B", null, DATE, LINK));
 
     assertThat(source.fetch(VIN))
         .extracting(Document::type)
@@ -110,11 +102,7 @@ class SalesSystemAdapterIT {
   @Test
   void convertsCreatedOnFromDealershipZoneToUtc() {
     // London is on UTC+1 in June. A March date couldn't tell the zone apart from UTC.
-    stubDeals(
-        """
-        {"docRef": "A", "docType": "INV", "name": "A", "createdOn": "14/06/2025",
-         "link": "https://sales.example.com/docs/A"}
-        """);
+    stubDocuments(item("A", "INV", "14/06/2025", LINK));
 
     assertThat(source.fetch(VIN).getFirst().documentDate())
         .isEqualTo(Instant.parse("2025-06-13T23:00:00Z"));
@@ -122,73 +110,70 @@ class SalesSystemAdapterIT {
 
   @Test
   void returnsEmptyListForNoDeals() {
-    assertThat(source.fetch(VIN_NO_DOCUMENTS)).isEmpty();
+    assertThat(source.fetch(Vin.parse("WVWZZZ1JZXW000005"))).isEmpty();
   }
 
   @Test
-  void dropsItemsWithoutIdOrHttpsLinkOrRealDate() {
-    stubBody(
-        """
-        {"deals": [
-          {"dealNumber": "D-1"},
-          {"dealNumber": "D-2", "documents": [
-            {"docType": "INV", "name": "No ID", "createdOn": "14/03/2025",
-             "link": "https://sales.example.com/docs/no-id"},
-            {"docRef": "HTTP", "docType": "INV", "name": "Not https", "createdOn": "14/03/2025",
-             "link": "http://sales.example.com/docs/HTTP"},
-            {"docRef": "NO-LINK", "docType": "INV", "name": "No link", "createdOn": "14/03/2025"},
-            {"docRef": "IMPOSSIBLE", "docType": "INV", "name": "No such day",
-             "createdOn": "31/02/2025", "link": "https://sales.example.com/docs/IMPOSSIBLE"},
-            {"docRef": "WRONG-FORMAT", "docType": "INV", "name": "Wrong format",
-             "createdOn": "2025-03-14", "link": "https://sales.example.com/docs/WRONG-FORMAT"},
-            {"docRef": "GOOD", "docType": "INV", "name": "Good", "createdOn": "14/03/2025",
-             "link": "https://sales.example.com/docs/GOOD"}
-          ]}
-        ]}
-        """);
+  void ignoresDealWithoutDocuments() {
+    stub(okJson("{\"deals\": [{}]}"));
+
+    assertThat(source.fetch(VIN)).isEmpty();
+  }
+
+  @Test
+  void dropsBadItems() {
+    stubDocuments(
+        item(null, "INV", DATE, LINK),
+        item(" ", "INV", DATE, LINK),
+        item("HTTP", "INV", DATE, "http://sales.example.com/docs/a"),
+        item("NO-LINK", "INV", DATE, null),
+        item("BAD-LINK", "INV", DATE, "https://not a link"),
+        item("IMPOSSIBLE", "INV", "31/02/2025", LINK),
+        item("WRONG-FORMAT", "INV", "2025-03-14", LINK),
+        item("GOOD", "INV", DATE, LINK));
 
     assertThat(source.fetch(VIN)).extracting(Document::id).containsExactly("SALES:GOOD");
   }
 
   @Test
   void keepsItemWithoutDateAsUndated() {
-    stubDeals(
-        """
-        {"docRef": "A", "docType": "INV", "name": "A",
-         "link": "https://sales.example.com/docs/A"}
-        """);
+    stubDocuments(item("A", "INV", null, LINK));
 
-    List<Document> documents = source.fetch(VIN);
-
-    assertThat(documents).extracting(Document::id).containsExactly("SALES:A");
-    assertThat(documents.getFirst().documentDate()).isNull();
+    assertThat(source.fetch(VIN).getFirst().documentDate()).isNull();
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"not json", "{}", "{\"deals\": null}"})
+  @ValueSource(
+      strings = {
+        "not json",
+        "{}",
+        "{\"deals\": null}",
+        "{\"deals\": [null]}",
+        "{\"deals\": [{\"documents\": [null]}]}",
+        "{\"deals\": [{\"documents\": [{\"docRef\": {}}]}]}"
+      })
   void throwsErrorOnUnreadableBody(String body) {
-    stubBody(body);
+    stub(okJson(body));
 
-    assertThat(fetchFailure().reason()).isEqualTo(FailureReason.ERROR);
-    assertRequests(1);
+    assertFails(FailureReason.ERROR, 1);
   }
 
   @Test
   void throwsErrorOn404WithoutRetry() {
     stub(aResponse().withStatus(404));
 
-    assertThat(fetchFailure().reason()).isEqualTo(FailureReason.ERROR);
-    assertRequests(1);
+    assertFails(FailureReason.ERROR, 1);
   }
 
   @Test
   void neverPutsVinInTheException() {
-    // An HTTP error, then an I/O error: Spring's I/O error message contains the request URL.
-    stub(serviceUnavailable());
-    assertThat(stackTraceOf(fetchFailure())).doesNotContain(VIN.value());
-
+    // Spring's I/O error message contains the request URL, and so the VIN.
     stub(aResponse().withFault(Fault.EMPTY_RESPONSE));
-    assertThat(stackTraceOf(fetchFailure())).doesNotContain(VIN.value());
+
+    SourceException failure = fetchFailure();
+
+    assertThat(failure.getCause()).isNull();
+    assertThat(failure.getMessage()).doesNotContain(VIN.value());
   }
 
   @Test
@@ -206,23 +191,35 @@ class SalesSystemAdapterIT {
             .willReturn(okJson("{\"deals\": []}")));
 
     assertThat(source.fetch(VIN)).isEmpty();
-    assertRequests(2);
+    salesApi.verify(2, getRequestedFor(urlPathEqualTo(DEALS_PATH)));
   }
 
   @Test
   void throwsErrorAfterSecond503() {
     stub(serviceUnavailable());
 
-    assertThat(fetchFailure().reason()).isEqualTo(FailureReason.ERROR);
-    assertRequests(2);
+    assertFails(FailureReason.ERROR, 2);
   }
 
   @Test
   void throwsTimeoutAndDoesNotRetrySlowRead() {
     stub(okJson("{\"deals\": []}").withFixedDelay(2_000));
 
-    assertThat(fetchFailure().reason()).isEqualTo(FailureReason.TIMEOUT);
-    assertRequests(1);
+    assertFails(FailureReason.TIMEOUT, 1);
+  }
+
+  @Test
+  void throwsTimeoutWhenBodyStallsAfterHeaders() {
+    // Two chunks over 4 s: the first arrives at once, then nothing for longer than the read
+    // timeout.
+    stub(okJson("{\"deals\": []}").withChunkedDribbleDelay(2, 4_000));
+
+    assertFails(FailureReason.TIMEOUT, 1);
+  }
+
+  private void assertFails(FailureReason reason, int requests) {
+    assertThat(fetchFailure().reason()).isEqualTo(reason);
+    salesApi.verify(requests, getRequestedFor(urlPathEqualTo(DEALS_PATH)));
   }
 
   private SourceException fetchFailure() {
@@ -239,22 +236,16 @@ class SalesSystemAdapterIT {
     salesApi.stubFor(dealsRequest().willReturn(response));
   }
 
-  private static void stubBody(String body) {
-    stub(okJson(body));
+  private static void stubDocuments(String... items) {
+    stub(okJson("{\"deals\": [{\"documents\": [" + String.join(",", items) + "]}]}"));
   }
 
-  private static void stubDeals(String documents) {
-    stubBody("{\"deals\": [{\"dealNumber\": \"D-1\", \"documents\": [" + documents + "]}]}");
+  private static String item(String docRef, String docType, String createdOn, String link) {
+    return "{\"docRef\": %s, \"docType\": %s, \"name\": \"Title\", \"createdOn\": %s, \"link\": %s}"
+        .formatted(json(docRef), json(docType), json(createdOn), json(link));
   }
 
-  private static void assertRequests(int count) {
-    salesApi.verify(count, getRequestedFor(urlPathEqualTo(DEALS_PATH)));
-  }
-
-  /** Includes causes and suppressed exceptions, which is what a logged stack trace would show. */
-  private static String stackTraceOf(Throwable failure) {
-    StringWriter text = new StringWriter();
-    failure.printStackTrace(new PrintWriter(text));
-    return text.toString();
+  private static String json(String value) {
+    return value == null ? "null" : "\"" + value + "\"";
   }
 }
