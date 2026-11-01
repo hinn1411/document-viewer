@@ -47,8 +47,8 @@ Package by feature, mirroring the components in design doc §3. There are no ext
 io.github.hinn1411.docviewer
 ├── DocumentViewerApplication.java
 ├── api/                     API layer
-│   ├── DocumentController.java      GET /api/v1/vehicles/{vin}/documents
-│   ├── CallerFilter.java            reads X-User-Id / X-Dealership-Id, returns 401
+│   ├── DocumentController.java      GET /api/v1/vehicles/{vin}/documents, reads X-User-Id / X-Dealership-Id
+│   ├── ResponseHeadersFilter.java   X-Request-Id and Cache-Control on every response
 │   ├── ProblemHandler.java          400 / 401 / 503 as problem details
 │   └── dto/                         response records (never return domain objects)
 ├── search/                  Document search service

@@ -24,7 +24,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 - [x] **T11** Fallback snapshots
 
 **P4 API**
-- [ ] **T12** REST endpoint, errors and OpenAPI
+- [x] **T12** REST endpoint, errors and OpenAPI
 
 **P5 Observability**
 - [ ] **T13** Metrics, dashboard and alert rules
