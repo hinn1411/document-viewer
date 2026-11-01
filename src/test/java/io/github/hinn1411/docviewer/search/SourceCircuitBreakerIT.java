@@ -1,16 +1,19 @@
 package io.github.hinn1411.docviewer.search;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.serviceUnavailable;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.github.hinn1411.docviewer.config.client.SourceClientsConfig;
 import io.github.hinn1411.docviewer.config.execution.ExecutorConfig;
@@ -28,9 +31,12 @@ import io.github.hinn1411.docviewer.source.adapter.sales.SalesSystemAdapter;
 import io.github.hinn1411.docviewer.source.adapter.service.ServiceSystemAdapter;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -51,7 +57,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       DocumentSearchService.class
     },
     webEnvironment = WebEnvironment.NONE,
-    properties = "docviewer.circuit-breaker.minimum-calls=4")
+    properties = {
+      "docviewer.circuit-breaker.minimum-calls=4",
+      // Fast timeouts, under the slow-call limit, so only the timeout rule can open the breaker.
+      "docviewer.sources.service.read-timeout=200ms"
+    })
 class SourceCircuitBreakerIT {
 
   private static final Vin VIN = Vin.parse("WVWZZZ1JZXW000099");
@@ -99,6 +109,33 @@ class SourceCircuitBreakerIT {
     assertThat(serviceOutcome(service.search(VIN, CALLER)).reason())
         .isEqualTo(FailureReason.CIRCUIT_OPEN);
     serviceApi.verify(0, anyRequestedFor(anyUrl()));
+  }
+
+  static Stream<ResponseDefinitionBuilder> sourceFailures() {
+    return Stream.of(
+        serverError(),
+        aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER),
+        okJson("[]").withFixedDelay(1_000));
+  }
+
+  @ParameterizedTest
+  @MethodSource("sourceFailures")
+  void opensWhenSourceKeepsFailing(ResponseDefinitionBuilder failure) {
+    serviceAnswers(failure);
+
+    searchTimes(4);
+
+    assertThat(serviceBreaker().getState()).isEqualTo(CircuitBreaker.State.OPEN);
+  }
+
+  @Test
+  void doesNotOpenOnUnreadableResponses() {
+    serviceAnswers(okJson("not json"));
+
+    searchTimes(6);
+
+    assertThat(serviceBreaker().getMetrics().getNumberOfFailedCalls()).isZero();
+    assertThat(serviceBreaker().getState()).isEqualTo(CircuitBreaker.State.CLOSED);
   }
 
   @Test
