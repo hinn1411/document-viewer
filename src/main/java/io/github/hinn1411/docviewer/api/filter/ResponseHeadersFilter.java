@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.api;
+package io.github.hinn1411.docviewer.api.filter;
 
 import io.github.hinn1411.docviewer.search.TraceIds;
 import io.micrometer.tracing.Tracer;
@@ -15,7 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class ResponseHeadersFilter extends OncePerRequestFilter {
 
-  static final String REQUEST_ID_HEADER = "X-Request-Id";
+  public static final String REQUEST_ID_HEADER = "X-Request-Id";
 
   private final Tracer tracer;
 

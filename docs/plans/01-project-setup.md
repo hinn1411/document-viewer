@@ -48,9 +48,13 @@ io.github.hinn1411.docviewer
 ├── DocumentViewerApplication.java
 ├── api/                     API layer
 │   ├── DocumentController.java      GET /api/v1/vehicles/{vin}/documents, reads X-User-Id / X-Dealership-Id
-│   ├── ResponseHeadersFilter.java   X-Request-Id and Cache-Control on every response
-│   ├── ProblemHandler.java          400 / 401 / 503 as problem details
-│   └── dto/                         response records (never return domain objects)
+│   ├── dto/                         response records (never return domain objects)
+│   ├── error/
+│   │   ├── ProblemHandler.java      400 / 401 / 503 / 500 as problem details
+│   │   ├── MissingCallerException.java
+│   │   └── SourcesUnavailableException.java
+│   └── filter/
+│       └── ResponseHeadersFilter.java   X-Request-Id and Cache-Control on every response
 ├── search/                  Document search service
 │   ├── DocumentSearchService.java   parallel calls, fallback, audit
 │   ├── AccessAuditor.java           builds the audit row and fails closed

@@ -1,6 +1,8 @@
 package io.github.hinn1411.docviewer.api;
 
 import io.github.hinn1411.docviewer.api.dto.DocumentsResponse;
+import io.github.hinn1411.docviewer.api.error.MissingCallerException;
+import io.github.hinn1411.docviewer.api.error.SourcesUnavailableException;
 import io.github.hinn1411.docviewer.search.DocumentSearchService;
 import io.github.hinn1411.docviewer.search.model.Caller;
 import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
@@ -18,7 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
-/** The one endpoint: every document for a vehicle. Errors are mapped by {@link ProblemHandler}. */
+/** The one endpoint: every document for a vehicle. Errors are mapped by {@code ProblemHandler}. */
 @RestController
 public class DocumentController {
 
