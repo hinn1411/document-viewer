@@ -5,11 +5,11 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.zaxxer.hikari.HikariDataSource;
 import io.github.hinn1411.docviewer.TestcontainersConfiguration;
-import io.github.hinn1411.docviewer.search.model.AccessAuditRecord;
-import io.github.hinn1411.docviewer.search.model.Caller;
-import io.github.hinn1411.docviewer.search.model.SearchOutcome;
-import io.github.hinn1411.docviewer.search.model.SourceStatus;
-import io.github.hinn1411.docviewer.search.model.Vin;
+import io.github.hinn1411.docviewer.domain.AccessAuditRecord;
+import io.github.hinn1411.docviewer.domain.Caller;
+import io.github.hinn1411.docviewer.domain.SearchOutcome;
+import io.github.hinn1411.docviewer.domain.SourceStatus;
+import io.github.hinn1411.docviewer.domain.Vin;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;

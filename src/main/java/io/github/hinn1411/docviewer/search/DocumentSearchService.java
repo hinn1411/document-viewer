@@ -1,15 +1,16 @@
 package io.github.hinn1411.docviewer.search;
 
-import io.github.hinn1411.docviewer.config.DocViewerProperties;
-import io.github.hinn1411.docviewer.search.audit.AccessAuditor;
-import io.github.hinn1411.docviewer.search.fallback.SnapshotFallback;
-import io.github.hinn1411.docviewer.search.model.Caller;
-import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
-import io.github.hinn1411.docviewer.search.model.FailureReason;
-import io.github.hinn1411.docviewer.search.model.SourceOutcome;
-import io.github.hinn1411.docviewer.search.model.Vin;
+import io.github.hinn1411.docviewer.config.properties.DocViewerProperties;
+import io.github.hinn1411.docviewer.domain.Caller;
+import io.github.hinn1411.docviewer.domain.DocumentSearchResult;
+import io.github.hinn1411.docviewer.domain.FailureReason;
+import io.github.hinn1411.docviewer.domain.ResultMerger;
+import io.github.hinn1411.docviewer.domain.SourceOutcome;
+import io.github.hinn1411.docviewer.domain.Vin;
+import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
+import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
 import io.github.hinn1411.docviewer.source.DocumentSource;
-import io.github.hinn1411.docviewer.source.failure.SourceException;
+import io.github.hinn1411.docviewer.source.error.SourceException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;

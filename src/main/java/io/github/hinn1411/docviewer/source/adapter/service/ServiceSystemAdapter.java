@@ -1,9 +1,9 @@
 package io.github.hinn1411.docviewer.source.adapter.service;
 
-import io.github.hinn1411.docviewer.config.DocViewerProperties;
-import io.github.hinn1411.docviewer.search.model.Document;
-import io.github.hinn1411.docviewer.search.model.DocumentType;
-import io.github.hinn1411.docviewer.search.model.Vin;
+import io.github.hinn1411.docviewer.config.properties.DocViewerProperties;
+import io.github.hinn1411.docviewer.domain.Document;
+import io.github.hinn1411.docviewer.domain.DocumentType;
+import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.source.adapter.BaseSourceAdapter;
 import java.time.Instant;
 import java.util.List;

@@ -1,7 +1,7 @@
 package io.github.hinn1411.docviewer.source;
 
-import io.github.hinn1411.docviewer.search.model.Document;
-import io.github.hinn1411.docviewer.search.model.Vin;
+import io.github.hinn1411.docviewer.domain.Document;
+import io.github.hinn1411.docviewer.domain.Vin;
 import java.util.List;
 
 /** A system that holds documents for a vehicle. A new source is one new implementation. */

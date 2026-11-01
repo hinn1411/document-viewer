@@ -41,7 +41,12 @@ These are the Boot 4 starters that start.spring.io generates. Boot 4 splits the 
 
 ## Package layout
 
-Package by feature, mirroring the components in design doc §3. There are no extra layers: one API, one service, two adapters and two repositories.
+Package by feature, mirroring the components in design doc §3. Dependencies run one way, and `domain/` imports no other package of ours. `config/` and `observability/` are used across the others.
+
+```text
+api → search → source, persistence → domain
+job → persistence → domain
+```
 
 ```text
 io.github.hinn1411.docviewer
@@ -50,41 +55,52 @@ io.github.hinn1411.docviewer
 │   ├── DocumentController.java      GET /api/v1/vehicles/{vin}/documents, reads X-User-Id / X-Dealership-Id
 │   ├── dto/                         response records (never return domain objects)
 │   ├── error/
-│   │   ├── ProblemHandler.java      400 / 401 / 503 / 500 as problem details
-│   │   ├── MissingCallerException.java
-│   │   └── SourcesUnavailableException.java
+│   │   └── ProblemHandler.java      400 / 401 / 503 / 500 as problem details
 │   └── filter/
 │       └── ResponseHeadersFilter.java   X-Request-Id and Cache-Control on every response
+├── domain/                  Records, enums and rules with no external dependencies
+│   ├── Vin, Caller, Document, SourceOutcome, … (see 05-domain-model.md)
+│   ├── ResultMerger.java            dedupe, sort (pure function)
+│   └── error/
+│       ├── InvalidVinException.java
+│       ├── MissingCallerException.java
+│       ├── SourcesUnavailableException.java
+│       └── AuditUnavailableException.java
 ├── search/                  Document search service
 │   ├── DocumentSearchService.java   parallel calls, fallback, audit
-│   ├── ResultMerger.java            dedupe, sort, per-source status (pure function)
-│   ├── audit/
-│   │   ├── AccessAuditor.java       builds the audit row and fails closed
-│   │   ├── AuditUnavailableException.java
-│   │   └── TraceIds.java            the ID shared by the audit row and X-Request-Id
-│   ├── fallback/
-│   │   └── SnapshotFallback.java    saves and serves the 24 h fallback copies
-│   └── model/                       Vin, Document, SourceOutcome, … (see 05-domain-model.md)
+│   └── support/
+│       ├── audit/AccessAuditor.java     builds the audit row and fails closed
+│       └── fallback/SnapshotFallback.java   saves and serves the 24 h fallback copies
 ├── source/                  Source system adapters
 │   ├── DocumentSource.java          the one interface: name() and fetch(vin)
 │   ├── adapter/
 │   │   ├── BaseSourceAdapter.java   what adapters share: the call, retry, failures, dropping bad items
 │   │   ├── sales/SalesSystemAdapter.java   its response shape is records inside it
 │   │   └── service/ServiceSystemAdapter.java
-│   └── failure/
+│   └── error/
 │       ├── SourceException.java     carries a FailureReason (TIMEOUT or ERROR) and whether to retry
 │       └── RetryOnTransientError.java   gives @Retryable that decision
-├── persistence/             Repository
+├── persistence/             Repositories
 │   ├── AuditRepository.java
-│   ├── SnapshotRepository.java
+│   └── SnapshotRepository.java
+├── job/
 │   └── SnapshotCleanupJob.java      deletes snapshots older than 24 h
-└── config/                  RestClient factory, executor, Clock, scheduling, properties
+├── observability/
+│   └── TraceIds.java                the ID shared by the audit row and X-Request-Id
+└── config/
+    ├── properties/DocViewerProperties.java
+    ├── client/SourceClientsConfig.java     RestClient factory, @Retryable on
+    ├── execution/ExecutorConfig.java, SchedulingConfig.java
+    └── time/ClockConfig.java
 ```
+
+Tests use the same packages as the classes they test.
 
 Rules (also in `.claude/rules/java-code.md`):
 - Each adapter keeps its source's response classes to itself, and only `Document` leaves it.
 - The controller returns DTOs, never domain records.
 - Time always comes from an injected `Clock`, so tests can control it.
+- Folders holding exceptions are called `error/`. `SourceException` stays in `source/error/`, because it depends on Spring's HTTP client.
 
 ## Configuration (`application.yml`)
 

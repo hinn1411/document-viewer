@@ -2,8 +2,10 @@ package io.github.hinn1411.docviewer.api.error;
 
 import io.github.hinn1411.docviewer.api.dto.SourceResponse;
 import io.github.hinn1411.docviewer.api.filter.ResponseHeadersFilter;
-import io.github.hinn1411.docviewer.search.audit.AuditUnavailableException;
-import io.github.hinn1411.docviewer.search.model.InvalidVinException;
+import io.github.hinn1411.docviewer.domain.error.AuditUnavailableException;
+import io.github.hinn1411.docviewer.domain.error.InvalidVinException;
+import io.github.hinn1411.docviewer.domain.error.MissingCallerException;
+import io.github.hinn1411.docviewer.domain.error.SourcesUnavailableException;
 import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

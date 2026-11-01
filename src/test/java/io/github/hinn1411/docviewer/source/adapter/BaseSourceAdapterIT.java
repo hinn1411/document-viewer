@@ -13,10 +13,10 @@ import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
-import io.github.hinn1411.docviewer.search.model.FailureReason;
-import io.github.hinn1411.docviewer.search.model.Vin;
+import io.github.hinn1411.docviewer.domain.FailureReason;
+import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.source.DocumentSource;
-import io.github.hinn1411.docviewer.source.failure.SourceException;
+import io.github.hinn1411.docviewer.source.error.SourceException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

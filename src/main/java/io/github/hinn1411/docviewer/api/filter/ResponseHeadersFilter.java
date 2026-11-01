@@ -1,6 +1,6 @@
 package io.github.hinn1411.docviewer.api.filter;
 
-import io.github.hinn1411.docviewer.search.audit.TraceIds;
+import io.github.hinn1411.docviewer.observability.TraceIds;
 import io.micrometer.tracing.Tracer;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
