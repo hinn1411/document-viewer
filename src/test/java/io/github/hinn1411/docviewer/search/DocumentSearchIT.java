@@ -8,6 +8,8 @@ import io.github.hinn1411.docviewer.config.ClockConfig;
 import io.github.hinn1411.docviewer.config.ExecutorConfig;
 import io.github.hinn1411.docviewer.config.SourceClientsConfig;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
+import io.github.hinn1411.docviewer.search.audit.AccessAuditor;
+import io.github.hinn1411.docviewer.search.fallback.SnapshotFallback;
 import io.github.hinn1411.docviewer.search.model.Caller;
 import io.github.hinn1411.docviewer.search.model.Document;
 import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;

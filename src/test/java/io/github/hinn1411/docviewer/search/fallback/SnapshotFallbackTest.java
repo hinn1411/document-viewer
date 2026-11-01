@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.search;
+package io.github.hinn1411.docviewer.search.fallback;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;

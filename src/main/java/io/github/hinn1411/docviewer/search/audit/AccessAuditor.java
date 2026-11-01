@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.search;
+package io.github.hinn1411.docviewer.search.audit;
 
 import io.github.hinn1411.docviewer.persistence.AuditRepository;
 import io.github.hinn1411.docviewer.search.model.AccessAuditRecord;

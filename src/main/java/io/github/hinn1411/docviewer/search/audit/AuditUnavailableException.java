@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.search;
+package io.github.hinn1411.docviewer.search.audit;
 
 /**
  * The access couldn't be recorded, so no documents may be returned. It keeps no cause, because

@@ -1,6 +1,8 @@
 package io.github.hinn1411.docviewer.search;
 
 import io.github.hinn1411.docviewer.config.DocViewerProperties;
+import io.github.hinn1411.docviewer.search.audit.AccessAuditor;
+import io.github.hinn1411.docviewer.search.fallback.SnapshotFallback;
 import io.github.hinn1411.docviewer.search.model.Caller;
 import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
 import io.github.hinn1411.docviewer.search.model.FailureReason;

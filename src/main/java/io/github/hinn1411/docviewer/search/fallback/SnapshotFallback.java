@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.search;
+package io.github.hinn1411.docviewer.search.fallback;
 
 import io.github.hinn1411.docviewer.config.DocViewerProperties;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;

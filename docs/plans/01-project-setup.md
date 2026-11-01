@@ -57,9 +57,13 @@ io.github.hinn1411.docviewer
 │       └── ResponseHeadersFilter.java   X-Request-Id and Cache-Control on every response
 ├── search/                  Document search service
 │   ├── DocumentSearchService.java   parallel calls, fallback, audit
-│   ├── AccessAuditor.java           builds the audit row and fails closed
-│   ├── SnapshotFallback.java        saves and serves the 24 h fallback copies
 │   ├── ResultMerger.java            dedupe, sort, per-source status (pure function)
+│   ├── audit/
+│   │   ├── AccessAuditor.java       builds the audit row and fails closed
+│   │   ├── AuditUnavailableException.java
+│   │   └── TraceIds.java            the ID shared by the audit row and X-Request-Id
+│   ├── fallback/
+│   │   └── SnapshotFallback.java    saves and serves the 24 h fallback copies
 │   └── model/                       Vin, Document, SourceOutcome, … (see 05-domain-model.md)
 ├── source/                  Source system adapters
 │   ├── DocumentSource.java          the one interface: name() and fetch(vin)
