@@ -198,7 +198,7 @@ Serves NFR2, A8 · est 3 h · depends on T10
 5. Given an older save finishes after a newer one, then the newer copy is kept.
 6. The cleanup job deletes snapshots older than 24 h.
 
-**Tests first:** `SnapshotRepositoryIT.newerCopyWins`, `ignoresCopiesOlderThan24h`, `DocumentSearchServiceTest.servesStaleCopyWhenSourceFails`, `unavailableWhenCopyTooOld`, `unavailableWhenCopyCannotBeRead`, `snapshotSaveFailureDoesNotAffectResponse`, `rejectedBackgroundSaveDoesNotFailTheSearch`, `datesCopyWhenTheSearchStarted`, `SnapshotRepositoryIT.readsBackSavedDocuments`, `SnapshotCleanupJobIT.deletesExpiredSnapshots`
+**Tests first:** `SnapshotRepositoryIT.newerCopyWins`, `ignoresCopiesOlderThan24h`, `DocumentSearchServiceTest.servesStaleCopyWhenSourceFails`, `datesCopyWhenTheSearchStarted`, `SnapshotFallbackTest.savesLiveAnswersInBackground`, `unavailableWhenCopyTooOld`, `unavailableWhenCopyCannotBeRead`, `snapshotSaveFailureIsOnlyLogged`, `rejectedBackgroundSaveIsOnlyLogged`, `SnapshotRepositoryIT.readsBackSavedDocuments`, `SnapshotCleanupJobIT.deletesExpiredSnapshots`
 
 **Files:** `persistence/SnapshotRepository.java` (the table is already in `V1__init.sql`, from T10), `persistence/SnapshotCleanupJob.java`, `search/SnapshotFallback.java`, `config/SchedulingConfig.java`
 

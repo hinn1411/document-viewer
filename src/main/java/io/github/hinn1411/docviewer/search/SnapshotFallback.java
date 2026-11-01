@@ -75,7 +75,10 @@ public class SnapshotFallback {
     try {
       return snapshotRepository.findNewerThan(vin, source, clock.instant().minus(maxAge));
     } catch (RuntimeException failure) {
-      log.warn("Reading a fallback copy failed: source={}, failure={}", source, name(failure));
+      log.warn(
+          "Reading a fallback copy failed: source={}, failure={}",
+          source,
+          failure.getClass().getName());
       return Optional.empty();
     }
   }
@@ -98,10 +101,8 @@ public class SnapshotFallback {
 
   private static void logSaveFailure(Snapshot snapshot, RuntimeException failure) {
     log.warn(
-        "Saving a fallback copy failed: source={}, failure={}", snapshot.source(), name(failure));
-  }
-
-  private static String name(RuntimeException failure) {
-    return failure.getClass().getName();
+        "Saving a fallback copy failed: source={}, failure={}",
+        snapshot.source(),
+        failure.getClass().getName());
   }
 }

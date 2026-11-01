@@ -46,7 +46,7 @@ public class SnapshotRepository {
     return jdbcClient
         .sql(
             """
-            SELECT CAST(documents AS text) AS documents, fetched_at FROM source_snapshot
+            SELECT documents, fetched_at FROM source_snapshot
             WHERE vin = :vin AND source = :source AND fetched_at > :cutoff
             """)
         .param("vin", vin.value())
@@ -62,8 +62,8 @@ public class SnapshotRepository {
         .optional();
   }
 
-  public int deleteOlderThan(Instant cutoff) {
-    return jdbcClient
+  public void deleteOlderThan(Instant cutoff) {
+    jdbcClient
         .sql("DELETE FROM source_snapshot WHERE fetched_at < :cutoff")
         .param("cutoff", utc(cutoff))
         .update();
