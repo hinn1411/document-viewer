@@ -42,6 +42,14 @@ public class SourceException extends RuntimeException {
         reason, retryable, "Source call failed: " + failure.getClass().getSimpleName());
   }
 
+  /**
+   * Whether the circuit breaker records this as a failure. Anything else counts as a success in its
+   * window, such as a 4xx, where the source answered and the problem may be one VIN.
+   */
+  public boolean countsAgainstSource() {
+    return reason == FailureReason.TIMEOUT || retryable;
+  }
+
   public FailureReason reason() {
     return reason;
   }

@@ -26,6 +26,7 @@ These are the Boot 4 starters that start.spring.io generates. Boot 4 splits the 
 | Data | `spring-boot-starter-jdbc`, `org.postgresql:postgresql` | `JdbcClient` with plain SQL for the two tables. No JPA: there's nothing to map |
 | Data | `spring-boot-starter-flyway`, `flyway-database-postgresql` | Versioned schema migrations |
 | Resilience | none extra | Spring Framework 7's `@Retryable` + `@EnableResilientMethods`: one retry per source call |
+| Resilience | `resilience4j-circuitbreaker` (core library, T12b) | One breaker per source ([ADR 0001](../adr/0001-circuit-breaker-per-source.md)). Spring Framework 7 has no breaker. No annotation, because an annotation behind a proxy failed silently in T07 |
 | API docs | `springdoc-openapi-starter-webmvc-ui` (3.x, for Boot 4) | OpenAPI spec and Swagger UI, which stand in for the client |
 | Metrics | `micrometer-registry-prometheus` | `/actuator/prometheus` (T13) |
 | Tracing | `spring-boot-starter-opentelemetry` (from **T01**, export switched off until T14) | Every request gets a trace ID from day 1, which is used as the request ID and in the audit row. T14 switches on the OTLP export to Jaeger |
@@ -88,8 +89,8 @@ io.github.hinn1411.docviewer
 ├── observability/
 │   └── TraceIds.java                the ID shared by the audit row and X-Request-Id
 └── config/
-    ├── properties/DocViewerProperties.java
-    ├── client/SourceClientsConfig.java     RestClient factory, @Retryable on
+    ├── properties/DocViewerProperties.java, CircuitBreakerProperties.java
+    ├── client/SourceClientsConfig.java     RestClient factory, @Retryable on, circuit breakers
     ├── execution/ExecutorConfig.java, SchedulingConfig.java
     └── time/ClockConfig.java
 ```
@@ -124,6 +125,15 @@ docviewer:
   source-deadline: 2s          # per source, then TIMEOUT
   fallback-max-age: 24h        # older snapshots are not served, and are deleted
   dealership-zone: Europe/London   # for date-only values such as the Sales createdOn
+  circuit-breaker:             # per source and per instance. Starting values, to tune from T13's metrics
+    window: 60s                # time-based, so old failures expire at low traffic
+    minimum-calls: 10
+    failure-rate: 50           # percent
+    slow-call: 1500ms
+    slow-call-rate: 50         # percent
+    open-for: 30s
+    half-open-calls: 3
+    half-open-max-wait: 60s    # back to open after this, even if trial calls succeeded. Must allow 3 calls at low traffic
   sources:
     sales:
       base-url: http://localhost:8081

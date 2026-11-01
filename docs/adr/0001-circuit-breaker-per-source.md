@@ -37,10 +37,15 @@ Three reasons decided it:
 - A new library, and more state to understand and tune.
 - The API's `reason` field gains `CIRCUIT_OPEN`.
 - Work other than the source call still happens when a breaker is open, including the fallback read and the audit write. So it doesn't shed load if this service itself is overloaded. That belongs at the gateway.
+- Timeouts and 503s can also be specific to one VIN, and they count toward the whole source. A client repeatedly asking for one failing VIN can open the breaker for every VIN. The demo stubs fail by VIN, so about ten mostly failing calls in 60 s would do this in a demo.
 - Each instance tracks failures on its own. `minimum-calls` applies per instance, so more instances means slower opening. I chose this over shared state in Redis, which would add a network call and a new failure to every source call.
 
 ## What counts as a failure
-Timeouts, 502/503/504 and refused connections. A 4xx or an unreadable response doesn't count, because the source answered and the problem may be one VIN. The breaker sits outside the retry, so a retried call counts once.
+Timeouts, 502/503/504 and refused connections count as failures. The breaker sits outside the retry, so a retried call counts once.
+
+Everything else counts as a **success** in the breaker's window, because the library treats any exception it isn't told to record that way. That's intended for a 4xx, where the source answered and the problem may be one VIN. It has two costs:
+- A plain 500, a reset connection or a DNS failure never opens the breaker, even if every call fails that way. The source keeps receiving load, and requests still fail fast and fall back.
+- Unreadable responses and adapter bugs also count as successes, so they can dilute the failure rate or close a half-open breaker.
 
 ## When to revisit
 - Traffic is too low per instance for the breaker ever to open.
