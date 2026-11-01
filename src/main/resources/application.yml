@@ -17,6 +17,15 @@ docviewer:
   source-deadline: 2s # per source, then TIMEOUT
   fallback-max-age: 24h # older snapshots are not served, and are deleted
   dealership-zone: Europe/London # for date-only values such as the Sales createdOn
+  circuit-breaker: # per source and per instance. Starting values, to tune from T13's metrics
+    window: 60s # time-based, so old failures expire at low traffic
+    minimum-calls: 10 # fewer calls than this in the window never opens it
+    failure-rate: 50 # percent
+    slow-call: 1500ms # a healthy source answers in about 500 ms (A9)
+    slow-call-rate: 50 # percent
+    open-for: 30s
+    half-open-calls: 3
+    half-open-max-wait: 60s # then back to open, even if trial calls succeeded
   sources:
     sales:
       base-url: http://localhost:8081

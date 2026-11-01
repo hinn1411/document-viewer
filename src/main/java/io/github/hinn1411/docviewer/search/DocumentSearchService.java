@@ -2,6 +2,7 @@ package io.github.hinn1411.docviewer.search;
 
 import io.github.hinn1411.docviewer.config.properties.DocViewerProperties;
 import io.github.hinn1411.docviewer.domain.Caller;
+import io.github.hinn1411.docviewer.domain.Document;
 import io.github.hinn1411.docviewer.domain.DocumentSearchResult;
 import io.github.hinn1411.docviewer.domain.FailureReason;
 import io.github.hinn1411.docviewer.domain.ResultMerger;
@@ -11,6 +12,8 @@ import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
 import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
 import io.github.hinn1411.docviewer.source.DocumentSource;
 import io.github.hinn1411.docviewer.source.error.SourceException;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -21,8 +24,9 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.stereotype.Service;
 
 /**
- * Calls every source at once and merges the results. Each source has a deadline, and each one ends
- * as an outcome, so one slow or broken source can't fail the search. Only a failed audit can.
+ * Calls every source at once and merges the results. Each source has a deadline and a circuit
+ * breaker, and each one ends as an outcome, so one slow or broken source can't fail the search.
+ * Only a failed audit can.
  */
 @Service
 public class DocumentSearchService {
@@ -34,6 +38,7 @@ public class DocumentSearchService {
   private final AccessAuditor auditor;
   private final SnapshotFallback fallback;
   private final Clock clock;
+  private final CircuitBreakerRegistry breakers;
 
   public DocumentSearchService(
       List<DocumentSource> sources,
@@ -42,7 +47,8 @@ public class DocumentSearchService {
       DocViewerProperties properties,
       AccessAuditor auditor,
       SnapshotFallback fallback,
-      Clock clock) {
+      Clock clock,
+      CircuitBreakerRegistry breakers) {
     this.sources = sources;
     this.merger = merger;
     this.sourceCallExecutor = sourceCallExecutor;
@@ -50,6 +56,7 @@ public class DocumentSearchService {
     this.auditor = auditor;
     this.fallback = fallback;
     this.clock = clock;
+    this.breakers = breakers;
   }
 
   public DocumentSearchResult search(Vin vin, Caller caller) {
@@ -79,10 +86,16 @@ public class DocumentSearchService {
         .completeOnTimeout(timedOut, deadline.toMillis(), TimeUnit.MILLISECONDS);
   }
 
-  private static SourceOutcome call(DocumentSource source, Vin vin) {
+  /** The breaker is outside the adapter's retry, so one search counts as one call. */
+  private SourceOutcome call(DocumentSource source, Vin vin) {
     long start = System.nanoTime();
     try {
-      return SourceOutcome.ok(source.name(), source.fetch(vin), elapsedSince(start));
+      List<Document> documents =
+          breakers.circuitBreaker(source.name()).executeSupplier(() -> source.fetch(vin));
+      return SourceOutcome.ok(source.name(), documents, elapsedSince(start));
+    } catch (CallNotPermittedException open) {
+      return SourceOutcome.unavailable(
+          source.name(), FailureReason.CIRCUIT_OPEN, elapsedSince(start));
     } catch (SourceException failure) {
       return SourceOutcome.unavailable(source.name(), failure.reason(), elapsedSince(start));
     } catch (RuntimeException unexpected) {

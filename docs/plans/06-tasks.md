@@ -25,6 +25,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 
 **P4 API**
 - [x] **T12** REST endpoint, errors and OpenAPI
+- [x] **T12b** One circuit breaker per source
 
 **P5 Observability**
 - [ ] **T13** Metrics, dashboard and alert rules
@@ -228,6 +229,13 @@ Serves FR1, FR3, A1, A11 · est 3 h · depends on T11
 **Tests first:** `DocumentControllerIT`, one test per demo VIN plus `returns400ForInvalidVin` (which also checks that no audit row is written, from T10), `returns401WithoutCaller`, `returns503WhenAuditFails`, `everyResponseHasRequestId`. These run against the full app with Testcontainers PostgreSQL and WireMock.
 
 **Files:** `api/*`, `api/dto/*`
+
+### T12b: One circuit breaker per source
+Serves NFR1, NFR2 · est 2 h · depends on T12
+
+Added after T12, at your request. The criteria and tests are in [`briefs/T12b.md`](briefs/T12b.md).
+
+**Files:** `search/DocumentSearchService.java`, `domain/FailureReason.java`, `config/client/SourceCircuitBreakerConfig.java`, `config/properties/CircuitBreakerProperties.java`
 
 ---
 

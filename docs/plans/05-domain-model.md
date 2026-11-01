@@ -55,6 +55,7 @@ classDiagram
         <<enumeration>>
         TIMEOUT
         ERROR
+        CIRCUIT_OPEN
     }
     DocumentSearchResult "1" --> "*" Document
     DocumentSearchResult "1" --> "*" SourceOutcome
@@ -81,7 +82,7 @@ classDiagram
 | `Document` | record | `source`, `sourceDocumentId`, `type`, `title`, `documentDate` (UTC `Instant`, nullable), `url`, `stale` | The common document format that every adapter produces. `id()` returns `source:sourceDocumentId`. `asStale()` returns a copy marked stale |
 | `SourceOutcome` | record | `source`, `status`, `reason`, `documents`, `latency`, `dataAsOf` | What one source contributed, and what the API reports per source. Always created with its factory: `ok`, `stale` or `unavailable`. A source call always ends in one of these, never an exception |
 | `SourceStatus` | enum | `OK`, `STALE`, `UNAVAILABLE` | `STALE` means the fallback copy was used |
-| `FailureReason` | enum | `TIMEOUT`, `ERROR` | `TIMEOUT` is a connect or read timeout in the adapter, or the service's 2 s deadline. `ERROR` covers refused connections, 5xx after the retry, and unreadable data |
+| `FailureReason` | enum | `TIMEOUT`, `ERROR`, `CIRCUIT_OPEN` | `CIRCUIT_OPEN` means the source's breaker is open, so no call was made. `TIMEOUT` is a connect or read timeout in the adapter, or the service's 2 s deadline. `ERROR` covers refused connections, 5xx after the retry, and unreadable data |
 | `SourceException` | runtime exception | `reason` (`FailureReason`) | Thrown by an adapter's `fetch`. The service turns it into `SourceOutcome.stale` or `unavailable` |
 | `DocumentSearchResult` | record | `vin`, `documents`, `sources` | `partial()` and `outcome()` are derived from the fields, never stored |
 | `SearchOutcome` | enum | `COMPLETE`, `PARTIAL`, `FAILED` | Written to the audit row and mapped to the HTTP status |

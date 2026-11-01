@@ -4,6 +4,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import io.github.hinn1411.docviewer.config.client.SourceCircuitBreakerConfig;
 import io.github.hinn1411.docviewer.config.client.SourceClientsConfig;
 import io.github.hinn1411.docviewer.config.execution.ExecutorConfig;
 import io.github.hinn1411.docviewer.config.time.ClockConfig;
@@ -35,6 +36,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @SpringBootTest(
     classes = {
       SourceClientsConfig.class,
+      SourceCircuitBreakerConfig.class,
       ExecutorConfig.class,
       SalesSystemAdapter.class,
       ServiceSystemAdapter.class,

@@ -32,6 +32,7 @@ import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
 import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
 import io.github.hinn1411.docviewer.source.DocumentSource;
 import io.github.hinn1411.docviewer.source.error.SourceException;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.micrometer.tracing.Tracer;
 import java.net.URI;
 import java.time.Clock;
@@ -45,6 +46,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -70,6 +72,7 @@ class DocumentSearchServiceTest {
   private final AuditRepository auditRepository = mock(AuditRepository.class);
   private final SnapshotRepository snapshotRepository = mock(SnapshotRepository.class);
   private final Tracer tracer = mock(Tracer.class, RETURNS_DEEP_STUBS);
+  private final CircuitBreakerRegistry breakers = CircuitBreakerRegistry.ofDefaults();
 
   @AfterEach
   void endFakeSources() {
@@ -237,6 +240,57 @@ class DocumentSearchServiceTest {
     assertThat(saved.getValue().fetchedAt()).isEqualTo(NOW);
   }
 
+  @Test
+  void skipsCallWhenBreakerOpen() {
+    breakers.circuitBreaker("SERVICE").transitionToOpenState();
+    AtomicInteger calls = new AtomicInteger();
+
+    DocumentSearchResult result =
+        search(
+            answers("SALES", document("SALES")),
+            source(
+                "SERVICE",
+                () -> {
+                  calls.incrementAndGet();
+                  return List.of(document("SERVICE"));
+                }));
+
+    assertThat(calls).hasValue(0);
+    SourceOutcome service = result.sources().getLast();
+    assertThat(service.status()).isEqualTo(SourceStatus.UNAVAILABLE);
+    assertThat(service.reason()).isEqualTo(FailureReason.CIRCUIT_OPEN);
+  }
+
+  @Test
+  void otherSourceUnaffectedWhenBreakerOpen() {
+    breakers.circuitBreaker("SERVICE").transitionToOpenState();
+
+    DocumentSearchResult result =
+        search(answers("SALES", document("SALES")), answers("SERVICE", document("SERVICE")));
+
+    assertThat(result.outcome()).isEqualTo(SearchOutcome.PARTIAL);
+    assertThat(result.sources().getFirst().status()).isEqualTo(SourceStatus.OK);
+    assertThat(result.documents()).extracting(Document::source).containsExactly("SALES");
+  }
+
+  @Test
+  void servesStaleCopyWhenBreakerOpen() {
+    breakers.circuitBreaker("SERVICE").transitionToOpenState();
+    Instant savedAt = NOW.minus(Duration.ofHours(3));
+    when(snapshotRepository.findNewerThan(eq(VIN), eq("SERVICE"), any()))
+        .thenReturn(
+            Optional.of(new Snapshot(VIN, "SERVICE", List.of(document("SERVICE")), savedAt)));
+
+    DocumentSearchResult result =
+        search(answers("SALES", document("SALES")), answers("SERVICE", document("LIVE")));
+
+    SourceOutcome service = result.sources().getLast();
+    assertThat(service.status()).isEqualTo(SourceStatus.STALE);
+    assertThat(service.reason()).isEqualTo(FailureReason.CIRCUIT_OPEN);
+    assertThat(service.dataAsOf()).isEqualTo(savedAt);
+    assertThat(service.documents()).extracting(Document::source).containsExactly("SERVICE");
+  }
+
   private AccessAuditRecord savedRecord() {
     ArgumentCaptor<AccessAuditRecord> record = ArgumentCaptor.forClass(AccessAuditRecord.class);
     verify(auditRepository).save(record.capture());
@@ -250,7 +304,14 @@ class DocumentSearchServiceTest {
     SnapshotFallback fallback =
         new SnapshotFallback(clock, snapshotRepository, executor, properties);
     return new DocumentSearchService(
-            List.of(sources), new ResultMerger(), executor, properties, auditor, fallback, clock)
+            List.of(sources),
+            new ResultMerger(),
+            executor,
+            properties,
+            auditor,
+            fallback,
+            clock,
+            breakers)
         .search(VIN, CALLER);
   }
 

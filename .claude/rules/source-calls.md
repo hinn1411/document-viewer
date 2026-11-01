@@ -13,5 +13,6 @@ Applies to the adapters, the search service and their configuration. The values 
 - Never wait on a source without a deadline: **2 s per source**.
 - HTTP client timeouts: **300 ms connect, 1.5 s read**. A read timeout is a `TIMEOUT`, not an `ERROR`.
 - **One retry** (`@Retryable`, 100 ms delay) on 502/503/504 or a refused connection. Never retry a timeout.
+- **One circuit breaker per source**, never on the endpoint ([ADR 0001](../../docs/adr/0001-circuit-breaker-per-source.md)). It sits outside the retry. Any 5xx, timeout or I/O failure counts, which is wider than the retry rule. A 4xx or an unreadable response doesn't. An open breaker is reason `CIRCUIT_OPEN`, and the fallback and audit still run.
 - One source failing becomes a status (`STALE` from the 24 h fallback copy, else `UNAVAILABLE`), never an exception for the whole request.
 - A new source is one new class extending `BaseSourceAdapter`; the search service doesn't change.
