@@ -1,6 +1,7 @@
 package io.github.hinn1411.docviewer.search;
 
 import io.github.hinn1411.docviewer.config.DocViewerProperties;
+import io.github.hinn1411.docviewer.search.model.Caller;
 import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
 import io.github.hinn1411.docviewer.search.model.FailureReason;
 import io.github.hinn1411.docviewer.search.model.SourceOutcome;
@@ -16,7 +17,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * Calls every source at once and merges the results. Each source has a deadline, and each one ends
- * as an outcome, so one slow or broken source can't fail the search.
+ * as an outcome, so one slow or broken source can't fail the search. Only a failed audit can.
  */
 @Service
 public class DocumentSearchService {
@@ -25,24 +26,29 @@ public class DocumentSearchService {
   private final ResultMerger merger;
   private final ExecutorService sourceCallExecutor;
   private final Duration deadline;
+  private final AccessAuditor auditor;
 
   public DocumentSearchService(
       List<DocumentSource> sources,
       ResultMerger merger,
       ExecutorService sourceCallExecutor,
-      DocViewerProperties properties) {
+      DocViewerProperties properties,
+      AccessAuditor auditor) {
     this.sources = sources;
     this.merger = merger;
     this.sourceCallExecutor = sourceCallExecutor;
     this.deadline = properties.sourceDeadline();
+    this.auditor = auditor;
   }
 
-  public DocumentSearchResult search(Vin vin) {
+  public DocumentSearchResult search(Vin vin, Caller caller) {
     // Start every call before waiting for any of them, so they run in parallel.
     List<CompletableFuture<SourceOutcome>> calls =
         sources.stream().map(source -> callWithDeadline(source, vin)).toList();
     List<SourceOutcome> outcomes = calls.stream().map(CompletableFuture::join).toList();
-    return merger.merge(vin, outcomes);
+    DocumentSearchResult result = merger.merge(vin, outcomes);
+    auditor.record(caller, result);
+    return result;
   }
 
   /**

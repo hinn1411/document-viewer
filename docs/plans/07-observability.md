@@ -81,6 +81,7 @@ Serves NFR3, NFR6.
   - `httpStatus`, `outcome`, `durationMs`
   - `sources[]`: status, reason, latency and count for each source
 - Adapter failures are logged at `WARN`, with the source and the reason, but not the response body.
+- A failed audit save and an unexpected exception from a source are logged at `ERROR` with the exception's class name only. Their messages can contain the VIN (T09, T10).
 - **Never logged:** the full VIN, document titles, URLs or tokens.
 
 **Done when**

@@ -20,7 +20,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 - [x] **T09** Parallel calls with a deadline
 
 **P3 Persistence**
-- [ ] **T10** Access audit (fails closed)
+- [x] **T10** Access audit (fails closed)
 - [ ] **T11** Fallback snapshots
 
 **P4 API**
@@ -185,7 +185,7 @@ Serves NFR3, A10 · est 3 h · depends on T09 · details in [`04-data-model.md`]
 
 **Tests first:** `AuditRepositoryIT.savesOneRowPerSearch`, `DocumentSearchServiceTest.failsClosedWhenAuditFails`, `DocumentSearchServiceTest.auditsFailedSearches`
 
-**Files:** `V1__init.sql` (audit table), `persistence/AuditRepository.java`
+**Files:** `V1__init.sql` (both tables, as in `04-data-model.md`), `persistence/AuditRepository.java`, `search/AccessAuditor.java`
 
 ### T11: Fallback snapshots
 Serves NFR2, A8 · est 3 h · depends on T10
@@ -200,7 +200,7 @@ Serves NFR2, A8 · est 3 h · depends on T10
 
 **Tests first:** `SnapshotRepositoryIT.newerCopyWins`, `ignoresCopiesOlderThan24h`, `DocumentSearchServiceTest.servesStaleCopyWhenSourceFails`, `unavailableWhenCopyTooOld`, `snapshotSaveFailureDoesNotAffectResponse`, `SnapshotCleanupJobIT.deletesExpiredSnapshots`
 
-**Files:** `V1__init.sql` (snapshot table), `persistence/SnapshotRepository.java`, `persistence/SnapshotCleanupJob.java`
+**Files:** `persistence/SnapshotRepository.java` (the table is already in `V1__init.sql`, from T10), `persistence/SnapshotCleanupJob.java`
 
 ---
 
@@ -225,7 +225,7 @@ Serves FR1, FR3, A1, A11 · est 3 h · depends on T11
 4. Every response has `X-Request-Id` and `Cache-Control: no-store`.
 5. `/v3/api-docs` and `/swagger-ui.html` describe the endpoint, the error responses and the example.
 
-**Tests first:** `DocumentControllerIT`, one test per demo VIN plus `returns400ForInvalidVin`, `returns401WithoutCaller`, `returns503WhenAuditFails`, `everyResponseHasRequestId`. These run against the full app with Testcontainers PostgreSQL and WireMock.
+**Tests first:** `DocumentControllerIT`, one test per demo VIN plus `returns400ForInvalidVin` (which also checks that no audit row is written, from T10), `returns401WithoutCaller`, `returns503WhenAuditFails`, `everyResponseHasRequestId`. These run against the full app with Testcontainers PostgreSQL and WireMock.
 
 **Files:** `api/*`, `api/dto/*`
 

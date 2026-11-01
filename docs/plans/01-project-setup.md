@@ -53,6 +53,7 @@ io.github.hinn1411.docviewer
 │   └── dto/                         response records (never return domain objects)
 ├── search/                  Document search service
 │   ├── DocumentSearchService.java   parallel calls, fallback, audit
+│   ├── AccessAuditor.java           builds the audit row and fails closed
 │   ├── ResultMerger.java            dedupe, sort, per-source status (pure function)
 │   └── model/                       Vin, Document, SourceOutcome, … (see 05-domain-model.md)
 ├── source/                  Source system adapters
@@ -89,6 +90,10 @@ spring:
     url: jdbc:postgresql://localhost:5432/docviewer
     username: docviewer
     password: docviewer
+    hikari:
+      connection-timeout: 1000   # ms. Only limits waiting for a connection
+      data-source-properties:
+        socketTimeout: 2         # seconds. Applies to every query, so migrations too
 
 docviewer:
   source-deadline: 2s          # per source, then TIMEOUT
