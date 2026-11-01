@@ -11,6 +11,7 @@ import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
 import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
 import io.github.hinn1411.docviewer.source.DocumentSource;
 import io.github.hinn1411.docviewer.source.error.SourceException;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -34,6 +35,7 @@ public class DocumentSearchService {
   private final AccessAuditor auditor;
   private final SnapshotFallback fallback;
   private final Clock clock;
+  private final CircuitBreakerRegistry breakers;
 
   public DocumentSearchService(
       List<DocumentSource> sources,
@@ -42,7 +44,8 @@ public class DocumentSearchService {
       DocViewerProperties properties,
       AccessAuditor auditor,
       SnapshotFallback fallback,
-      Clock clock) {
+      Clock clock,
+      CircuitBreakerRegistry breakers) {
     this.sources = sources;
     this.merger = merger;
     this.sourceCallExecutor = sourceCallExecutor;
@@ -50,6 +53,7 @@ public class DocumentSearchService {
     this.auditor = auditor;
     this.fallback = fallback;
     this.clock = clock;
+    this.breakers = breakers;
   }
 
   public DocumentSearchResult search(Vin vin, Caller caller) {

@@ -1,7 +1,9 @@
 package io.github.hinn1411.docviewer.config.client;
 
 import io.github.hinn1411.docviewer.config.properties.DocViewerProperties;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.resilience.annotation.EnableResilientMethods;
@@ -12,6 +14,11 @@ import org.springframework.web.client.RestClient;
 @EnableResilientMethods
 @EnableConfigurationProperties(DocViewerProperties.class)
 public class SourceClientsConfig {
+
+  @Bean
+  CircuitBreakerRegistry circuitBreakers() {
+    return CircuitBreakerRegistry.ofDefaults();
+  }
 
   /**
    * Uses socket timeouts so that a stall in the headers or the body throws {@code

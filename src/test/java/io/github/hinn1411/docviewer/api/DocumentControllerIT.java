@@ -13,6 +13,8 @@ import io.github.hinn1411.docviewer.domain.Snapshot;
 import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.persistence.AuditRepository;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
@@ -74,6 +76,7 @@ class DocumentControllerIT {
 
   @Autowired JdbcClient jdbcClient;
   @Autowired SnapshotRepository snapshotRepository;
+  @Autowired CircuitBreakerRegistry breakers;
 
   @MockitoSpyBean AuditRepository auditRepository;
 
@@ -81,6 +84,14 @@ class DocumentControllerIT {
   void clearTables() {
     jdbcClient.sql("DELETE FROM source_snapshot").update();
     jdbcClient.sql("DELETE FROM document_access_audit").update();
+  }
+
+  /**
+   * Demo stubs fail by VIN but breakers work by source, so failures mustn't carry between tests.
+   */
+  @BeforeEach
+  void closeBreakers() {
+    breakers.getAllCircuitBreakers().forEach(CircuitBreaker::reset);
   }
 
   @Test
@@ -172,6 +183,21 @@ class DocumentControllerIT {
     assertThat(sourceIn(body, "SALES").get("status").asString()).isEqualTo("UNAVAILABLE");
     assertThat(sourceIn(body, "SERVICE").get("status").asString()).isEqualTo("UNAVAILABLE");
     assertThat(auditCallerOf(VIN_BOTH_DOWN)).containsExactly("user-1 dealer-1 FAILED");
+  }
+
+  @Test
+  void returns503AndAuditsWhenBothBreakersOpen() {
+    breakers.circuitBreaker("SALES").transitionToOpenState();
+    breakers.circuitBreaker("SERVICE").transitionToOpenState();
+
+    ResponseEntity<String> response = get(documentsOf(VIN_COMPLETE), CALLER);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(503);
+    JsonNode body = json(response);
+    assertThat(body.get("type").asString()).isEqualTo("sources-unavailable");
+    assertThat(sourceIn(body, "SALES").get("reason").asString()).isEqualTo("CIRCUIT_OPEN");
+    assertThat(sourceIn(body, "SERVICE").get("reason").asString()).isEqualTo("CIRCUIT_OPEN");
+    assertThat(auditCallerOf(VIN_COMPLETE)).containsExactly("user-1 dealer-1 FAILED");
   }
 
   @Test
