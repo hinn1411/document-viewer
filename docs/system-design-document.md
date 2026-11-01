@@ -162,7 +162,7 @@ sequenceDiagram
 2. **Validate.** An invalid VIN gets 400, and no system is called.
 3. **Ask both systems at once.** Each system has 2 s to answer. The user waits only as long as the slower one, not both added together.
 4. **Translate.** Each adapter converts its system's format into one common document format.
-5. **Fallback.** If a system fails or is too slow, the service uses its last saved copy if it's under 24 h old, and marks it `STALE`. Otherwise the source is marked `UNAVAILABLE`.
+5. **Fallback.** If a system fails, is too slow, or its circuit breaker is open, the service uses its last saved copy if it's under 24 h old, and marks it `STALE`. Otherwise the source is marked `UNAVAILABLE`.
 6. **Merge.** The documents are combined, duplicates removed, sorted newest first, and each one is labelled with its source.
 7. **Audit and respond.** The service records who viewed which vehicle's documents, then responds. If the audit can't be saved, it returns 503 and no documents, because documents carry personal data.
 8. **Save a copy.** Each successful result is saved in the background as the next fallback copy.
@@ -178,19 +178,23 @@ sequenceDiagram
     participant SERV as Service System API
     participant R as Repository
 
-    S->>VA: fetch documents for VIN
-    VA->>SERV: GET documents by VIN
-    alt no answer within 2 s
-        Note over S: stop waiting
-        S->>S: mark TIMEOUT
-    else 502, 503, 504 or refused connection
-        SERV-->>VA: error
-        VA->>SERV: retry once
-        SERV-->>VA: error again
-        VA-->>S: ERROR
-    else any other error
-        SERV-->>VA: error
-        VA-->>S: ERROR
+    alt breaker open
+        S->>S: make no call, mark CIRCUIT_OPEN
+    else breaker closed
+        S->>VA: fetch documents for VIN
+        VA->>SERV: GET documents by VIN
+        alt no answer within 2 s
+            Note over S: stop waiting
+            S->>S: mark TIMEOUT
+        else 502, 503, 504 or refused connection
+            SERV-->>VA: error
+            VA->>SERV: retry once
+            SERV-->>VA: error again
+            VA-->>S: ERROR
+        else any other error
+            SERV-->>VA: error
+            VA-->>S: ERROR
+        end
     end
     S->>R: read last saved copy for VIN and source
     alt copy under 24 h old
@@ -213,8 +217,11 @@ sequenceDiagram
 | 6 | Both sources fail, no fallback copy | Records the failed access | **503**, with each source's status |
 | 7 | Audit can't be saved | Returns no documents, because an unrecorded access isn't allowed | **503** |
 | 8 | Saving the fallback copy fails | Logs it. The user already has the response | User not affected |
+| 9 | Source keeps failing, so its circuit breaker is open | Makes no call and uses the fallback copy | **200**, `partial: true`, reason `CIRCUIT_OPEN`. **503** only if no source has anything to return (row 6) |
 
 When a source fails, its status is `STALE` if a fallback copy under 24 h old exists, and `UNAVAILABLE` if not. The response is 200 whenever at least one source is `OK` or `STALE`.
+
+Each source has its own circuit breaker, so one source's outage doesn't affect the other, and the fallback and audit still run. Any 5xx, timeout or I/O failure counts toward opening it. A 4xx or an unreadable response doesn't. See [ADR 0001](adr/0001-circuit-breaker-per-source.md).
 
 ---
 
@@ -224,7 +231,8 @@ When a source fails, its status is `STALE` if a fallback copy under 24 h old exi
 |---|---|---|
 | **Language and framework** | Java 21 | Virtual threads make parallel blocking calls cheap and keep the code simple to read and test. It's my strongest language |
 | | Spring Boot 4 | `RestClient`, `JdbcClient`, Actuator, and Micrometer metrics and tracing built in |
-| **Resilience** | Spring Framework retry (`@Retryable`) | One retry per source, built into Spring Framework 7, so no extra library |
+| **Resilience** | Spring Framework retry (`@Retryable`) | One retry per source, built into Spring Framework 7 |
+| | resilience4j-circuitbreaker (core library only) | One breaker per source. Spring Framework 7 has no breaker |
 | **Data** | PostgreSQL 16 | Reliable and transactional for the audit log. JSONB stores the snapshots. Available as Amazon RDS |
 | | Flyway | Versioned, reviewable schema migrations |
 | **API contract** | springdoc-openapi | Generates the OpenAPI spec and Swagger UI from the code, so the mocked client always matches the API |
@@ -325,5 +333,5 @@ I used **Claude Code** (Claude Opus 5.5) in **plan mode**, so nothing is written
 | Asked Claude Code to research Keyloop's products | Build a mental model about the products, use them as my understanding to verify the agent's output in the implementation phase |
 | Made the key decisions myself when the AI asked: the stack, what the database stores, and the scope | Keep ownership of the design. I chose Java 21 + Spring Boot 4 (the current release at scaffold time), my strongest stack |
 | Had the AI draft a detailed design, then directed it to simplify: generic components, a simpler data flow, a shorter observability section | Opus 5.5's first draft (xhigh effort) was over-engineered for Part 1. Keep the document at the design level, remove implementation details |
-| Reviewed every AI draft against the brief and pushed back: removed framework names from the diagrams, cut circuit breaker and bulkhead from the data flow, rewrote observability from a metrics list into a strategy | AI output is a draft. I own what gets submitted |
+| Reviewed every AI draft against the brief and pushed back: removed framework names from the diagrams, cut circuit breaker and bulkhead from the data flow, rewrote observability from a metrics list into a strategy | AI output is a draft. I own what gets submitted. (A per-source breaker was added later, in T12b: see [ADR 0001](adr/0001-circuit-breaker-per-source.md).) |
 | Turned common AI coding mistakes into planned tests: calling the sources one after the other, one failure failing the whole request, missing timeouts | Catch these mistakes with failing tests in Part 2, not by luck in review |
