@@ -1,6 +1,7 @@
 package io.github.hinn1411.docviewer.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.zaxxer.hikari.HikariDataSource;
 import io.github.hinn1411.docviewer.TestcontainersConfiguration;
@@ -10,6 +11,7 @@ import io.github.hinn1411.docviewer.search.model.SearchOutcome;
 import io.github.hinn1411.docviewer.search.model.SourceStatus;
 import io.github.hinn1411.docviewer.search.model.Vin;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -21,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /** T10: an audit record becomes one row in a real PostgreSQL, and a database wait stays short. */
@@ -81,5 +84,16 @@ class AuditRepositoryIT {
   @Test
   void waitsAtMostOneSecondForAConnection() throws SQLException {
     assertThat(dataSource.unwrap(HikariDataSource.class).getConnectionTimeout()).isEqualTo(1_000);
+  }
+
+  @Test
+  void abandonsAQueryThatStallsPastTwoSeconds() {
+    long start = System.nanoTime();
+
+    Throwable failure =
+        catchThrowable(() -> jdbcClient.sql("SELECT pg_sleep(5)").query().singleRow());
+
+    assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(3));
+    assertThat(failure).isInstanceOf(DataAccessException.class);
   }
 }

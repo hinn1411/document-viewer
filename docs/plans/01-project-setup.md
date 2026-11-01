@@ -91,7 +91,9 @@ spring:
     username: docviewer
     password: docviewer
     hikari:
-      connection-timeout: 1000   # ms. Only limits waiting for a connection, so the audit fails fast
+      connection-timeout: 1000   # ms. Only limits waiting for a connection
+      data-source-properties:
+        socketTimeout: 2         # seconds. Applies to every query, so migrations too
 
 docviewer:
   source-deadline: 2s          # per source, then TIMEOUT
