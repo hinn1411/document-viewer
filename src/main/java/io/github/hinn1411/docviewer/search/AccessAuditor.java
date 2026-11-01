@@ -6,7 +6,6 @@ import io.github.hinn1411.docviewer.search.model.Caller;
 import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
 import io.github.hinn1411.docviewer.search.model.SourceOutcome;
 import io.github.hinn1411.docviewer.search.model.SourceStatus;
-import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import java.time.Clock;
 import java.util.LinkedHashMap;
@@ -17,8 +16,6 @@ import org.springframework.stereotype.Component;
 /** Records who viewed which vehicle's documents. If it can't, the search must not return them. */
 @Component
 public class AccessAuditor {
-
-  private static final String NO_TRACE = "no-trace";
 
   private final Clock clock;
   private final Tracer tracer;
@@ -37,7 +34,7 @@ public class AccessAuditor {
             clock.instant(),
             caller,
             result.vin(),
-            currentTraceId(),
+            TraceIds.current(tracer),
             result.outcome(),
             statusesOf(result),
             result.documents().size());
@@ -46,11 +43,6 @@ public class AccessAuditor {
     } catch (RuntimeException failure) {
       throw new AuditUnavailableException();
     }
-  }
-
-  private String currentTraceId() {
-    Span span = tracer.currentSpan();
-    return span == null ? NO_TRACE : span.context().traceId();
   }
 
   private static Map<String, SourceStatus> statusesOf(DocumentSearchResult result) {

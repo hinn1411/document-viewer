@@ -58,7 +58,7 @@ Serves NFR6.
 - Micrometer Tracing with the OpenTelemetry bridge is already on from **T01**, so trace IDs exist from day 1, and T10 and T12 already use them. T14 adds the OTLP export to Jaeger, the custom spans and propagation.
 - **One trace per request.** Its trace ID is returned as `X-Request-Id`, and the same ID is written to the audit row and the logs.
 - **Spans:** the request, then `sales.fetch` and `service.fetch` (in parallel), `fallback.read` (only when a source failed) and `audit.save`.
-- **Span attributes:** `source`, `result`, `document_count` and the masked VIN. Never the full VIN, titles or URLs.
+- **Span attributes:** `source`, `result`, `document_count` and the masked VIN. Never the full VIN, titles or URLs. The VIN is in the request path and in the adapters' outgoing URLs, so check the default `http.url` attributes on server and client spans before turning export on (from T12's review, not yet checked).
 - **Context across threads:** the virtual-thread executor is wrapped with Micrometer's context-propagation support, so the source spans are children of the request span. Without the wrapper they start new traces, which is a common AI mistake. The exact API is checked through context7 when this is built.
 - **To the sources:** `RestClient` from the auto-configured builder sends the W3C `traceparent` header.
 - **Sampling:** 100% locally. The design's production policy (keep every failed or slow trace plus about 10% of the rest) belongs in a collector's tail-sampling config, which is out of scope for local runs.

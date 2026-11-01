@@ -121,7 +121,7 @@ Spring injects every `DocumentSource` bean into `DocumentSearchService` as a `Li
 | Situation | Raised as | HTTP | Problem `type` |
 |---|---|---|---|
 | Invalid VIN | `InvalidVinException` from `Vin.parse` | 400 | `invalid-vin` |
-| Missing `X-User-Id` or `X-Dealership-Id` | rejected by `CallerFilter` | 401 | `missing-caller` |
+| Missing `X-User-Id` or `X-Dealership-Id` | `MissingCallerException` from `DocumentController` | 401 | `missing-caller` |
 | No source is `OK` or `STALE` | `outcome() == FAILED` | 503 | `sources-unavailable`, with `sources[]` |
 | Audit can't be saved | `AuditUnavailableException` | 503 | `audit-unavailable`, with no documents |
 | Anything unexpected | any other exception | 500 | `internal-error`, no details leaked |
