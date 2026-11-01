@@ -219,6 +219,8 @@ sequenceDiagram
 | 8 | Saving the fallback copy fails | Logs it. The user already has the response | User not affected |
 | 9 | Source keeps failing, so its circuit breaker is open | Makes no call and uses the fallback copy | **200**, `partial: true`, reason `CIRCUIT_OPEN`. **503** only if no source has anything to return (row 6) |
 
+When a source fails, or its circuit breaker is open, its status is `STALE` if a fallback copy under 24 h old exists, and `UNAVAILABLE` if not. The response is 200 whenever at least one source is `OK` or `STALE`.
+
 
 ---
 
