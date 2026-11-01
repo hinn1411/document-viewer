@@ -2,7 +2,7 @@ package io.github.hinn1411.docviewer.api.error;
 
 import io.github.hinn1411.docviewer.api.dto.SourceResponse;
 import io.github.hinn1411.docviewer.api.filter.ResponseHeadersFilter;
-import io.github.hinn1411.docviewer.search.AuditUnavailableException;
+import io.github.hinn1411.docviewer.search.audit.AuditUnavailableException;
 import io.github.hinn1411.docviewer.search.model.InvalidVinException;
 import java.net.URI;
 import org.slf4j.Logger;

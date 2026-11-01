@@ -9,7 +9,7 @@ Applies to all production code.
 
 ## Package layout (`io.github.hinn1411.docviewer`)
 - `api/`: controller; `dto/`; `error/` (`ProblemHandler` and its exceptions); `filter/` (`ResponseHeadersFilter`)
-- `search/`: `DocumentSearchService`, `ResultMerger`, `model/` (Vin, Document, SourceOutcome, …)
+- `search/`: `DocumentSearchService`, `ResultMerger`; `audit/` (`AccessAuditor`, `TraceIds`); `fallback/` (`SnapshotFallback`); `model/` (Vin, Document, SourceOutcome, …)
 - `source/`: the `DocumentSource` interface; `adapter/` (`BaseSourceAdapter`, `sales/`, `service/`); `failure/` (`SourceException`, `RetryOnTransientError`)
 - `persistence/`: audit and snapshot repositories, snapshot cleanup job
 - `config/`: `RestClient` beans, executor, `Clock`, properties
