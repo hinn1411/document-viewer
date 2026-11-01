@@ -3,15 +3,22 @@ package io.github.hinn1411.docviewer.search;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.github.hinn1411.docviewer.config.DocViewerProperties;
 import io.github.hinn1411.docviewer.persistence.AuditRepository;
+import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
 import io.github.hinn1411.docviewer.search.model.AccessAuditRecord;
 import io.github.hinn1411.docviewer.search.model.Caller;
 import io.github.hinn1411.docviewer.search.model.Document;
@@ -19,6 +26,7 @@ import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
 import io.github.hinn1411.docviewer.search.model.DocumentType;
 import io.github.hinn1411.docviewer.search.model.FailureReason;
 import io.github.hinn1411.docviewer.search.model.SearchOutcome;
+import io.github.hinn1411.docviewer.search.model.Snapshot;
 import io.github.hinn1411.docviewer.search.model.SourceOutcome;
 import io.github.hinn1411.docviewer.search.model.SourceStatus;
 import io.github.hinn1411.docviewer.search.model.Vin;
@@ -32,6 +40,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,16 +48,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
 
 /**
  * T09: sources are called at once, each with a deadline, and each ends as one outcome. T10: audit.
+ * T11: fallback copies.
  */
 class DocumentSearchServiceTest {
 
   private static final Vin VIN = Vin.parse("WVWZZZ1JZXW000001");
   private static final Duration DEADLINE = Duration.ofSeconds(2);
+  private static final Duration MAX_AGE = Duration.ofHours(24);
   private static final Caller CALLER = new Caller("user-1", "dealer-1");
   private static final Instant NOW = Instant.parse("2026-11-01T10:00:00Z");
   private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
@@ -56,6 +71,7 @@ class DocumentSearchServiceTest {
   private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
   private final CountDownLatch release = new CountDownLatch(1);
   private final AuditRepository auditRepository = mock(AuditRepository.class);
+  private final SnapshotRepository snapshotRepository = mock(SnapshotRepository.class);
   private final Tracer tracer = mock(Tracer.class, RETURNS_DEEP_STUBS);
 
   @AfterEach
@@ -188,6 +204,101 @@ class DocumentSearchServiceTest {
     assertThat(savedRecord().traceId()).isEqualTo("no-trace");
   }
 
+  @Test
+  void savesSuccessfulResultsInBackground() throws InterruptedException {
+    Document document = document("SALES");
+    // If the save ran on the search's thread, the search would wait here for the full 3 s.
+    doAnswer(
+            invocation -> {
+              release.await(3, TimeUnit.SECONDS);
+              return null;
+            })
+        .when(snapshotRepository)
+        .save(any());
+    long start = System.nanoTime();
+
+    search(
+        answers("SALES", document),
+        source("EMPTY", List::of),
+        fails("SERVICE", new SourceException(FailureReason.ERROR, "failed")));
+
+    assertThat(elapsedSince(start)).isLessThan(Duration.ofSeconds(3));
+    release.countDown();
+    executor.close();
+    ArgumentCaptor<Snapshot> saved = ArgumentCaptor.forClass(Snapshot.class);
+    verify(snapshotRepository, times(2)).save(saved.capture());
+    assertThat(saved.getAllValues())
+        .containsExactlyInAnyOrder(
+            new Snapshot(VIN, "SALES", List.of(document), NOW),
+            new Snapshot(VIN, "EMPTY", List.of(), NOW));
+    InOrder auditThenSave = inOrder(auditRepository, snapshotRepository);
+    auditThenSave.verify(auditRepository).save(any());
+    auditThenSave.verify(snapshotRepository, atLeastOnce()).save(any());
+  }
+
+  @Test
+  void servesStaleCopyWhenSourceFails() {
+    Instant threeHoursAgo = NOW.minus(Duration.ofHours(3));
+    when(snapshotRepository.findNewerThan(eq(VIN), eq("SERVICE"), any()))
+        .thenReturn(
+            Optional.of(new Snapshot(VIN, "SERVICE", List.of(document("SERVICE")), threeHoursAgo)));
+
+    DocumentSearchResult result =
+        search(
+            answers("SALES", document("SALES")),
+            fails("SERVICE", new SourceException(FailureReason.ERROR, "failed")));
+
+    SourceOutcome service = result.sources().getLast();
+    assertThat(service.status()).isEqualTo(SourceStatus.STALE);
+    assertThat(service.reason()).isEqualTo(FailureReason.ERROR);
+    assertThat(service.dataAsOf()).isEqualTo(threeHoursAgo);
+    assertThat(result.documents())
+        .extracting(Document::source, Document::stale)
+        .containsExactlyInAnyOrder(tuple("SALES", false), tuple("SERVICE", true));
+    assertThat(result.outcome()).isEqualTo(SearchOutcome.PARTIAL);
+  }
+
+  @Test
+  void unavailableWhenCopyTooOld() {
+    DocumentSearchResult result =
+        search(fails("SERVICE", new SourceException(FailureReason.ERROR, "failed")));
+
+    verify(snapshotRepository).findNewerThan(VIN, "SERVICE", NOW.minus(MAX_AGE));
+    assertThat(result.sources().getLast().status()).isEqualTo(SourceStatus.UNAVAILABLE);
+  }
+
+  @Test
+  void unavailableWhenCopyCannotBeRead() {
+    when(snapshotRepository.findNewerThan(any(), any(), any()))
+        .thenThrow(new DataAccessResourceFailureException("database down"));
+
+    DocumentSearchResult result =
+        search(fails("SERVICE", new SourceException(FailureReason.TIMEOUT, "failed")));
+
+    verify(snapshotRepository).findNewerThan(eq(VIN), eq("SERVICE"), any());
+    SourceOutcome service = result.sources().getLast();
+    assertThat(service.status()).isEqualTo(SourceStatus.UNAVAILABLE);
+    assertThat(service.reason()).isEqualTo(FailureReason.TIMEOUT);
+  }
+
+  @Test
+  @ExtendWith(OutputCaptureExtension.class)
+  void snapshotSaveFailureDoesNotAffectResponse(CapturedOutput output) {
+    // PostgreSQL's error detail can contain the whole row, including the VIN.
+    doThrow(new DataAccessResourceFailureException("Failing row contains " + VIN.value()))
+        .when(snapshotRepository)
+        .save(any());
+
+    DocumentSearchResult result = search(answers("SALES", document("SALES")));
+    executor.close();
+
+    assertThat(result.outcome()).isEqualTo(SearchOutcome.COMPLETE);
+    assertThat(result.documents()).hasSize(1);
+    assertThat(output)
+        .contains("SALES", "DataAccessResourceFailureException")
+        .doesNotContain(VIN.value());
+  }
+
   private AccessAuditRecord savedRecord() {
     ArgumentCaptor<AccessAuditRecord> record = ArgumentCaptor.forClass(AccessAuditRecord.class);
     verify(auditRepository).save(record.capture());
@@ -195,10 +306,13 @@ class DocumentSearchServiceTest {
   }
 
   private DocumentSearchResult search(DocumentSource... sources) {
-    DocViewerProperties properties = new DocViewerProperties(DEADLINE, ZoneOffset.UTC, Map.of());
+    DocViewerProperties properties =
+        new DocViewerProperties(DEADLINE, MAX_AGE, ZoneOffset.UTC, Map.of());
     AccessAuditor auditor = new AccessAuditor(FIXED_CLOCK, tracer, auditRepository);
+    SnapshotFallback fallback =
+        new SnapshotFallback(FIXED_CLOCK, snapshotRepository, executor, properties);
     return new DocumentSearchService(
-            List.of(sources), new ResultMerger(), executor, properties, auditor)
+            List.of(sources), new ResultMerger(), executor, properties, auditor, fallback)
         .search(VIN, CALLER);
   }
 

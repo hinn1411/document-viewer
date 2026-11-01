@@ -33,7 +33,8 @@ public class DocumentSearchService {
       ResultMerger merger,
       ExecutorService sourceCallExecutor,
       DocViewerProperties properties,
-      AccessAuditor auditor) {
+      AccessAuditor auditor,
+      SnapshotFallback fallback) {
     this.sources = sources;
     this.merger = merger;
     this.sourceCallExecutor = sourceCallExecutor;
