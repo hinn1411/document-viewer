@@ -13,7 +13,6 @@ import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
 import io.github.hinn1411.docviewer.source.DocumentSource;
 import io.github.hinn1411.docviewer.source.error.SourceException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.time.Clock;
 import java.time.Duration;
@@ -90,9 +89,9 @@ public class DocumentSearchService {
   /** The breaker is outside the adapter's retry, so one search counts as one call. */
   private SourceOutcome call(DocumentSource source, Vin vin) {
     long start = System.nanoTime();
-    CircuitBreaker breaker = breakers.circuitBreaker(source.name());
     try {
-      List<Document> documents = breaker.executeSupplier(() -> source.fetch(vin));
+      List<Document> documents =
+          breakers.circuitBreaker(source.name()).executeSupplier(() -> source.fetch(vin));
       return SourceOutcome.ok(source.name(), documents, elapsedSince(start));
     } catch (CallNotPermittedException open) {
       return SourceOutcome.unavailable(

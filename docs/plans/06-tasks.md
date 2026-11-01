@@ -235,7 +235,7 @@ Serves NFR1, NFR2 · est 2 h · depends on T12
 
 Added after T12, at your request. The criteria and tests are in [`briefs/T12b.md`](briefs/T12b.md).
 
-**Files:** `search/DocumentSearchService.java`, `domain/FailureReason.java`, `config/client/SourceClientsConfig.java`, `config/properties/CircuitBreakerProperties.java`
+**Files:** `search/DocumentSearchService.java`, `domain/FailureReason.java`, `config/client/SourceCircuitBreakerConfig.java`, `config/properties/CircuitBreakerProperties.java`
 
 ---
 

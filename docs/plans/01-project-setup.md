@@ -90,7 +90,8 @@ io.github.hinn1411.docviewer
 │   └── TraceIds.java                the ID shared by the audit row and X-Request-Id
 └── config/
     ├── properties/DocViewerProperties.java, CircuitBreakerProperties.java
-    ├── client/SourceClientsConfig.java     RestClient factory, @Retryable on, circuit breakers
+    ├── client/SourceClientsConfig.java     RestClient factory, @Retryable on
+    │   client/SourceCircuitBreakerConfig.java   one breaker per source
     ├── execution/ExecutorConfig.java, SchedulingConfig.java
     └── time/ClockConfig.java
 ```
@@ -133,7 +134,7 @@ docviewer:
     slow-call-rate: 50         # percent
     open-for: 30s
     half-open-calls: 3
-    half-open-max-wait: 60s    # back to open after this, even if trial calls succeeded. Must allow 3 calls at low traffic
+    half-open-max-wait: 60s    # then back to open, even if trial calls succeeded
   sources:
     sales:
       base-url: http://localhost:8081

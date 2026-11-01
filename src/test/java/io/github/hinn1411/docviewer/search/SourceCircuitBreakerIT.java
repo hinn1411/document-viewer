@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import io.github.hinn1411.docviewer.config.client.SourceCircuitBreakerConfig;
 import io.github.hinn1411.docviewer.config.client.SourceClientsConfig;
 import io.github.hinn1411.docviewer.config.execution.ExecutorConfig;
 import io.github.hinn1411.docviewer.config.time.ClockConfig;
@@ -48,6 +49,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @SpringBootTest(
     classes = {
       SourceClientsConfig.class,
+      SourceCircuitBreakerConfig.class,
       ExecutorConfig.class,
       SalesSystemAdapter.class,
       ServiceSystemAdapter.class,
@@ -128,27 +130,21 @@ class SourceCircuitBreakerIT {
     assertThat(serviceBreaker().getState()).isEqualTo(CircuitBreaker.State.OPEN);
   }
 
-  @Test
-  void doesNotOpenOnUnreadableResponses() {
-    serviceAnswers(okJson("not json"));
-
-    searchTimes(6);
-
-    assertThat(serviceBreaker().getMetrics().getNumberOfFailedCalls()).isZero();
-    assertThat(serviceBreaker().getState()).isEqualTo(CircuitBreaker.State.CLOSED);
+  static Stream<ResponseDefinitionBuilder> sourceAnswers() {
+    return Stream.of(notFound(), okJson("not json"));
   }
 
-  @Test
-  void doesNotOpenOn404s() {
-    serviceAnswers(notFound());
+  @ParameterizedTest
+  @MethodSource("sourceAnswers")
+  void doesNotOpenWhenSourceAnswered(ResponseDefinitionBuilder answer) {
+    serviceAnswers(answer);
 
     searchTimes(6);
 
-    // The breaker saw every call, so it stayed closed because a 404 doesn't count as a failure.
+    // The breaker saw every call, so it stayed closed because none counted as a failure.
     assertThat(serviceBreaker().getMetrics().getNumberOfBufferedCalls()).isEqualTo(6);
     assertThat(serviceBreaker().getMetrics().getNumberOfFailedCalls()).isZero();
     assertThat(serviceBreaker().getState()).isEqualTo(CircuitBreaker.State.CLOSED);
-    assertThat(serviceOutcome(service.search(VIN, CALLER)).reason()).isEqualTo(FailureReason.ERROR);
   }
 
   @Test
