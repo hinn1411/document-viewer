@@ -54,10 +54,10 @@ public class DocumentController {
               schema = @Schema(implementation = ProblemDetail.class)))
   public DocumentsResponse documents(
       @Parameter(example = "WVWZZZ1JZXW000001") @PathVariable String vin,
-      @Parameter(required = true, example = "user-1")
+      @Parameter(description = "Required: missing or blank gives 401", example = "user-1")
           @RequestHeader(name = "X-User-Id", required = false)
           String userId,
-      @Parameter(required = true, example = "dealer-1")
+      @Parameter(description = "Required: missing or blank gives 401", example = "dealer-1")
           @RequestHeader(name = "X-Dealership-Id", required = false)
           String dealershipId) {
     Caller caller = callerFrom(userId, dealershipId);
