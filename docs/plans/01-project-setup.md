@@ -33,7 +33,7 @@ These are the Boot 4 starters that start.spring.io generates. Boot 4 splits the 
 | Test | `spring-boot-starter-*-test` for each starter above | JUnit 5, AssertJ, Mockito and the test slices |
 | Test | `spring-boot-testcontainers`, `testcontainers-postgresql`, `testcontainers-junit-jupiter` | A real PostgreSQL in tests, never H2 |
 | Test | `org.wiremock:wiremock-standalone` (added in T04) | Fake Sales and Service APIs with delays and errors |
-| Test | `org.awaitility:awaitility` (added in T11) | Waiting for the background snapshot save without `Thread.sleep` |
+| Test | `org.awaitility:awaitility` (added when first needed) | Polling without `Thread.sleep`. T11 closes the executor instead, which waits for its background saves |
 
 **Maven plugins:**
 - `spotless-maven-plugin` with google-java-format. `spotless:check` runs in CI.
@@ -54,6 +54,7 @@ io.github.hinn1411.docviewer
 ├── search/                  Document search service
 │   ├── DocumentSearchService.java   parallel calls, fallback, audit
 │   ├── AccessAuditor.java           builds the audit row and fails closed
+│   ├── SnapshotFallback.java        saves and serves the 24 h fallback copies
 │   ├── ResultMerger.java            dedupe, sort, per-source status (pure function)
 │   └── model/                       Vin, Document, SourceOutcome, … (see 05-domain-model.md)
 ├── source/                  Source system adapters
@@ -69,7 +70,7 @@ io.github.hinn1411.docviewer
 │   ├── AuditRepository.java
 │   ├── SnapshotRepository.java
 │   └── SnapshotCleanupJob.java      deletes snapshots older than 24 h
-└── config/                  RestClient beans, executor, Clock, properties
+└── config/                  RestClient factory, executor, Clock, scheduling, properties
 ```
 
 Rules (also in `.claude/rules/java-code.md`):
@@ -93,7 +94,7 @@ spring:
     hikari:
       connection-timeout: 1000   # ms. Only limits waiting for a connection
       data-source-properties:
-        socketTimeout: 2         # seconds. Applies to every query, so migrations too
+        socketTimeout: 2         # seconds. Applies to every query. A slow future migration needs its own Flyway connection settings
 
 docviewer:
   source-deadline: 2s          # per source, then TIMEOUT

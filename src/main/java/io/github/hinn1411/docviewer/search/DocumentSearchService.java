@@ -8,7 +8,9 @@ import io.github.hinn1411.docviewer.search.model.SourceOutcome;
 import io.github.hinn1411.docviewer.search.model.Vin;
 import io.github.hinn1411.docviewer.source.DocumentSource;
 import io.github.hinn1411.docviewer.source.failure.SourceException;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -27,6 +29,8 @@ public class DocumentSearchService {
   private final ExecutorService sourceCallExecutor;
   private final Duration deadline;
   private final AccessAuditor auditor;
+  private final SnapshotFallback fallback;
+  private final Clock clock;
 
   public DocumentSearchService(
       List<DocumentSource> sources,
@@ -34,21 +38,30 @@ public class DocumentSearchService {
       ExecutorService sourceCallExecutor,
       DocViewerProperties properties,
       AccessAuditor auditor,
-      SnapshotFallback fallback) {
+      SnapshotFallback fallback,
+      Clock clock) {
     this.sources = sources;
     this.merger = merger;
     this.sourceCallExecutor = sourceCallExecutor;
     this.deadline = properties.sourceDeadline();
     this.auditor = auditor;
+    this.fallback = fallback;
+    this.clock = clock;
   }
 
   public DocumentSearchResult search(Vin vin, Caller caller) {
+    Instant startedAt = clock.instant();
     // Start every call before waiting for any of them, so they run in parallel.
     List<CompletableFuture<SourceOutcome>> calls =
         sources.stream().map(source -> callWithDeadline(source, vin)).toList();
-    List<SourceOutcome> outcomes = calls.stream().map(CompletableFuture::join).toList();
+    List<SourceOutcome> outcomes =
+        calls.stream()
+            .map(CompletableFuture::join)
+            .map(outcome -> fallback.applyTo(vin, outcome))
+            .toList();
     DocumentSearchResult result = merger.merge(vin, outcomes);
     auditor.record(caller, result);
+    fallback.saveInBackground(vin, outcomes, startedAt);
     return result;
   }
 

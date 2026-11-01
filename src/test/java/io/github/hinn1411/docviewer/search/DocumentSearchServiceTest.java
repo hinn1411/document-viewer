@@ -1,6 +1,7 @@
 package io.github.hinn1411.docviewer.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.groups.Tuple.tuple;
@@ -70,6 +71,7 @@ class DocumentSearchServiceTest {
 
   private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
   private final CountDownLatch release = new CountDownLatch(1);
+  private Clock clock = FIXED_CLOCK;
   private final AuditRepository auditRepository = mock(AuditRepository.class);
   private final SnapshotRepository snapshotRepository = mock(SnapshotRepository.class);
   private final Tracer tracer = mock(Tracer.class, RETURNS_DEEP_STUBS);
@@ -299,6 +301,34 @@ class DocumentSearchServiceTest {
         .doesNotContain(VIN.value());
   }
 
+  @Test
+  void datesCopyWhenTheSearchStarted() {
+    // A clock that moves on after the first reading, as time does during a search.
+    clock = mock(Clock.class);
+    when(clock.instant()).thenReturn(NOW, NOW.plusSeconds(5));
+
+    search(answers("SALES", document("SALES")));
+    executor.close();
+
+    ArgumentCaptor<Snapshot> saved = ArgumentCaptor.forClass(Snapshot.class);
+    verify(snapshotRepository).save(saved.capture());
+    assertThat(saved.getValue().fetchedAt()).isEqualTo(NOW);
+  }
+
+  @Test
+  void rejectedBackgroundSaveDoesNotFailTheSearch() {
+    ExecutorService closed = Executors.newVirtualThreadPerTaskExecutor();
+    closed.close();
+    DocViewerProperties properties =
+        new DocViewerProperties(DEADLINE, MAX_AGE, ZoneOffset.UTC, Map.of());
+    SnapshotFallback fallback =
+        new SnapshotFallback(FIXED_CLOCK, snapshotRepository, closed, properties);
+    SourceOutcome outcome = SourceOutcome.ok("SALES", List.of(), Duration.ZERO);
+
+    assertThatCode(() -> fallback.saveInBackground(VIN, List.of(outcome), NOW))
+        .doesNotThrowAnyException();
+  }
+
   private AccessAuditRecord savedRecord() {
     ArgumentCaptor<AccessAuditRecord> record = ArgumentCaptor.forClass(AccessAuditRecord.class);
     verify(auditRepository).save(record.capture());
@@ -308,11 +338,11 @@ class DocumentSearchServiceTest {
   private DocumentSearchResult search(DocumentSource... sources) {
     DocViewerProperties properties =
         new DocViewerProperties(DEADLINE, MAX_AGE, ZoneOffset.UTC, Map.of());
-    AccessAuditor auditor = new AccessAuditor(FIXED_CLOCK, tracer, auditRepository);
+    AccessAuditor auditor = new AccessAuditor(clock, tracer, auditRepository);
     SnapshotFallback fallback =
-        new SnapshotFallback(FIXED_CLOCK, snapshotRepository, executor, properties);
+        new SnapshotFallback(clock, snapshotRepository, executor, properties);
     return new DocumentSearchService(
-            List.of(sources), new ResultMerger(), executor, properties, auditor, fallback)
+            List.of(sources), new ResultMerger(), executor, properties, auditor, fallback, clock)
         .search(VIN, CALLER);
   }
 
