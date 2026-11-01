@@ -15,6 +15,7 @@ spring:
 
 docviewer:
   source-deadline: 2s # per source, then TIMEOUT
+  fallback-max-age: 24h # older snapshots are not served, and are deleted
   dealership-zone: Europe/London # for date-only values such as the Sales createdOn
   sources:
     sales:

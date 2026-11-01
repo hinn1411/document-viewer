@@ -4,8 +4,10 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import io.github.hinn1411.docviewer.config.ClockConfig;
 import io.github.hinn1411.docviewer.config.ExecutorConfig;
 import io.github.hinn1411.docviewer.config.SourceClientsConfig;
+import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
 import io.github.hinn1411.docviewer.search.model.Caller;
 import io.github.hinn1411.docviewer.search.model.Document;
 import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
@@ -35,6 +37,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       ServiceSystemAdapter.class,
       ResultMerger.class,
       AccessAuditor.class,
+      ClockConfig.class,
+      SnapshotFallback.class,
       DocumentSearchService.class
     },
     webEnvironment = WebEnvironment.NONE)
@@ -62,6 +66,8 @@ class DocumentSearchIT {
 
   // The audit has its own tests, and this test needs no database.
   @MockitoBean AccessAuditor auditor;
+
+  @MockitoBean SnapshotRepository snapshotRepository;
 
   @Autowired DocumentSearchService service;
 

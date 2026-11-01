@@ -3,7 +3,9 @@ package io.github.hinn1411.docviewer.search;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -12,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import io.github.hinn1411.docviewer.config.DocViewerProperties;
 import io.github.hinn1411.docviewer.persistence.AuditRepository;
+import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
 import io.github.hinn1411.docviewer.search.model.AccessAuditRecord;
 import io.github.hinn1411.docviewer.search.model.Caller;
 import io.github.hinn1411.docviewer.search.model.Document;
@@ -19,6 +22,7 @@ import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
 import io.github.hinn1411.docviewer.search.model.DocumentType;
 import io.github.hinn1411.docviewer.search.model.FailureReason;
 import io.github.hinn1411.docviewer.search.model.SearchOutcome;
+import io.github.hinn1411.docviewer.search.model.Snapshot;
 import io.github.hinn1411.docviewer.search.model.SourceOutcome;
 import io.github.hinn1411.docviewer.search.model.SourceStatus;
 import io.github.hinn1411.docviewer.search.model.Vin;
@@ -32,6 +36,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,18 +49,22 @@ import org.springframework.dao.DataAccessResourceFailureException;
 
 /**
  * T09: sources are called at once, each with a deadline, and each ends as one outcome. T10: audit.
+ * T11: fallback copies.
  */
 class DocumentSearchServiceTest {
 
   private static final Vin VIN = Vin.parse("WVWZZZ1JZXW000001");
   private static final Duration DEADLINE = Duration.ofSeconds(2);
+  private static final Duration MAX_AGE = Duration.ofHours(24);
   private static final Caller CALLER = new Caller("user-1", "dealer-1");
   private static final Instant NOW = Instant.parse("2026-11-01T10:00:00Z");
   private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
   private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
   private final CountDownLatch release = new CountDownLatch(1);
+  private Clock clock = FIXED_CLOCK;
   private final AuditRepository auditRepository = mock(AuditRepository.class);
+  private final SnapshotRepository snapshotRepository = mock(SnapshotRepository.class);
   private final Tracer tracer = mock(Tracer.class, RETURNS_DEEP_STUBS);
 
   @AfterEach
@@ -188,6 +197,42 @@ class DocumentSearchServiceTest {
     assertThat(savedRecord().traceId()).isEqualTo("no-trace");
   }
 
+  @Test
+  void servesStaleCopyWhenSourceFails() {
+    Instant threeHoursAgo = NOW.minus(Duration.ofHours(3));
+    when(snapshotRepository.findNewerThan(eq(VIN), eq("SERVICE"), any()))
+        .thenReturn(
+            Optional.of(new Snapshot(VIN, "SERVICE", List.of(document("SERVICE")), threeHoursAgo)));
+
+    DocumentSearchResult result =
+        search(
+            answers("SALES", document("SALES")),
+            fails("SERVICE", new SourceException(FailureReason.ERROR, "failed")));
+
+    SourceOutcome service = result.sources().getLast();
+    assertThat(service.status()).isEqualTo(SourceStatus.STALE);
+    assertThat(service.reason()).isEqualTo(FailureReason.ERROR);
+    assertThat(service.dataAsOf()).isEqualTo(threeHoursAgo);
+    assertThat(result.documents())
+        .extracting(Document::source, Document::stale)
+        .containsExactlyInAnyOrder(tuple("SALES", false), tuple("SERVICE", true));
+    assertThat(result.outcome()).isEqualTo(SearchOutcome.PARTIAL);
+  }
+
+  @Test
+  void datesCopyWhenTheSearchStarted() {
+    // A clock that moves on after the first reading, as time does during a search.
+    clock = mock(Clock.class);
+    when(clock.instant()).thenReturn(NOW, NOW.plusSeconds(5));
+
+    search(answers("SALES", document("SALES")));
+    executor.close();
+
+    ArgumentCaptor<Snapshot> saved = ArgumentCaptor.forClass(Snapshot.class);
+    verify(snapshotRepository).save(saved.capture());
+    assertThat(saved.getValue().fetchedAt()).isEqualTo(NOW);
+  }
+
   private AccessAuditRecord savedRecord() {
     ArgumentCaptor<AccessAuditRecord> record = ArgumentCaptor.forClass(AccessAuditRecord.class);
     verify(auditRepository).save(record.capture());
@@ -195,10 +240,13 @@ class DocumentSearchServiceTest {
   }
 
   private DocumentSearchResult search(DocumentSource... sources) {
-    DocViewerProperties properties = new DocViewerProperties(DEADLINE, ZoneOffset.UTC, Map.of());
-    AccessAuditor auditor = new AccessAuditor(FIXED_CLOCK, tracer, auditRepository);
+    DocViewerProperties properties =
+        new DocViewerProperties(DEADLINE, MAX_AGE, ZoneOffset.UTC, Map.of());
+    AccessAuditor auditor = new AccessAuditor(clock, tracer, auditRepository);
+    SnapshotFallback fallback =
+        new SnapshotFallback(clock, snapshotRepository, executor, properties);
     return new DocumentSearchService(
-            List.of(sources), new ResultMerger(), executor, properties, auditor)
+            List.of(sources), new ResultMerger(), executor, properties, auditor, fallback, clock)
         .search(VIN, CALLER);
   }
 
