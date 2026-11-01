@@ -62,8 +62,8 @@ public class SnapshotRepository {
         .optional();
   }
 
-  public void deleteOlderThan(Instant cutoff) {
-    jdbcClient
+  public int deleteOlderThan(Instant cutoff) {
+    return jdbcClient
         .sql("DELETE FROM source_snapshot WHERE fetched_at < :cutoff")
         .param("cutoff", utc(cutoff))
         .update();

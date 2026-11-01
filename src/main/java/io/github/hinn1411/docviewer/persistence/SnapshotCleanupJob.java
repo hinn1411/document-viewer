@@ -3,6 +3,9 @@ package io.github.hinn1411.docviewer.persistence;
 import io.github.hinn1411.docviewer.config.DocViewerProperties;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +15,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class SnapshotCleanupJob {
+
+  private static final Logger log = LoggerFactory.getLogger(SnapshotCleanupJob.class);
 
   private final SnapshotRepository snapshotRepository;
   private final Clock clock;
@@ -26,6 +31,8 @@ public class SnapshotCleanupJob {
 
   @Scheduled(cron = "0 0 * * * *")
   public void deleteExpiredSnapshots() {
-    snapshotRepository.deleteOlderThan(clock.instant().minus(maxAge));
+    Instant cutoff = clock.instant().minus(maxAge);
+    int deleted = snapshotRepository.deleteOlderThan(cutoff);
+    log.info("Deleted expired fallback copies: deleted={}, cutoff={}", deleted, cutoff);
   }
 }

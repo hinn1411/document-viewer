@@ -47,16 +47,27 @@ public class SnapshotFallback {
     if (outcome.status() != SourceStatus.UNAVAILABLE) {
       return outcome;
     }
-    return findCopy(vin, outcome.source())
-        .map(
-            copy ->
-                SourceOutcome.stale(
-                    outcome.source(),
-                    outcome.reason(),
-                    copy.documents(),
-                    outcome.latency(),
-                    copy.fetchedAt()))
-        .orElse(outcome);
+    Optional<Snapshot> copy = findCopy(vin, outcome.source());
+    if (copy.isEmpty()) {
+      log.info(
+          "No usable fallback copy: source={}, vin={}, reason={}",
+          outcome.source(),
+          vin.masked(),
+          outcome.reason());
+      return outcome;
+    }
+    log.info(
+        "Serving fallback copy: source={}, vin={}, reason={}, dataAsOf={}",
+        outcome.source(),
+        vin.masked(),
+        outcome.reason(),
+        copy.get().fetchedAt());
+    return SourceOutcome.stale(
+        outcome.source(),
+        outcome.reason(),
+        copy.get().documents(),
+        outcome.latency(),
+        copy.get().fetchedAt());
   }
 
   /**
@@ -76,8 +87,9 @@ public class SnapshotFallback {
       return snapshotRepository.findNewerThan(vin, source, clock.instant().minus(maxAge));
     } catch (RuntimeException failure) {
       log.warn(
-          "Reading a fallback copy failed: source={}, failure={}",
+          "Reading a fallback copy failed: source={}, vin={}, failure={}",
           source,
+          vin.masked(),
           failure.getClass().getName());
       return Optional.empty();
     }
@@ -94,6 +106,12 @@ public class SnapshotFallback {
   private void save(Snapshot snapshot) {
     try {
       snapshotRepository.save(snapshot);
+      log.debug(
+          "Saved fallback copy: source={}, vin={}, documentCount={}, fetchedAt={}",
+          snapshot.source(),
+          snapshot.vin().masked(),
+          snapshot.documents().size(),
+          snapshot.fetchedAt());
     } catch (RuntimeException failure) {
       logSaveFailure(snapshot, failure);
     }
@@ -101,8 +119,9 @@ public class SnapshotFallback {
 
   private static void logSaveFailure(Snapshot snapshot, RuntimeException failure) {
     log.warn(
-        "Saving a fallback copy failed: source={}, failure={}",
+        "Saving a fallback copy failed: source={}, vin={}, failure={}",
         snapshot.source(),
+        snapshot.vin().masked(),
         failure.getClass().getName());
   }
 }
