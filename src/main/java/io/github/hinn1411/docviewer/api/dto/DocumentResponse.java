@@ -1,7 +1,7 @@
 package io.github.hinn1411.docviewer.api.dto;
 
-import io.github.hinn1411.docviewer.search.model.Document;
-import io.github.hinn1411.docviewer.search.model.DocumentType;
+import io.github.hinn1411.docviewer.domain.Document;
+import io.github.hinn1411.docviewer.domain.DocumentType;
 import java.net.URI;
 import java.time.Instant;
 

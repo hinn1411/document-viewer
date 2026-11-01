@@ -8,11 +8,19 @@ paths:
 Applies to all production code.
 
 ## Package layout (`io.github.hinn1411.docviewer`)
-- `api/`: controller; `dto/`; `error/` (`ProblemHandler` and its exceptions); `filter/` (`ResponseHeadersFilter`)
-- `search/`: `DocumentSearchService`, `ResultMerger`; `audit/` (`AccessAuditor`, `TraceIds`); `fallback/` (`SnapshotFallback`); `model/` (Vin, Document, SourceOutcome, …)
-- `source/`: the `DocumentSource` interface; `adapter/` (`BaseSourceAdapter`, `sales/`, `service/`); `failure/` (`SourceException`, `RetryOnTransientError`)
-- `persistence/`: audit and snapshot repositories, snapshot cleanup job
-- `config/`: `RestClient` beans, executor, `Clock`, properties
+- `api/`: controller; `dto/`; `error/` (`ProblemHandler`); `filter/` (`ResponseHeadersFilter`)
+- `domain/`: records, enums and `ResultMerger`; `error/` (domain exceptions)
+- `search/`: `DocumentSearchService`; `support/audit/` (`AccessAuditor`); `support/fallback/` (`SnapshotFallback`)
+- `source/`: the `DocumentSource` interface; `adapter/` (`BaseSourceAdapter`, `sales/`, `service/`); `error/` (`SourceException`, `RetryOnTransientError`)
+- `persistence/`: audit and snapshot repositories
+- `job/`: scheduled jobs (`SnapshotCleanupJob`)
+- `observability/`: `TraceIds`
+- `config/`: `properties/`, `client/`, `execution/` (executor, scheduling), `time/` (`Clock`)
+
+## Dependencies
+- They run one way: `api → search → source, persistence → domain`, and `job → persistence → domain`. `config/` and `observability/` are used across the others.
+- `domain/` imports no other package of ours.
+- Folders holding exceptions are called `error/`, never `failure/`.
 
 ## Rules
 - Each adapter keeps its source's response classes to itself; only `Document` leaves it.

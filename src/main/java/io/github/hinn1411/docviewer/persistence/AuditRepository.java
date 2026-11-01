@@ -1,6 +1,6 @@
 package io.github.hinn1411.docviewer.persistence;
 
-import io.github.hinn1411.docviewer.search.model.AccessAuditRecord;
+import io.github.hinn1411.docviewer.domain.AccessAuditRecord;
 import java.time.ZoneOffset;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;

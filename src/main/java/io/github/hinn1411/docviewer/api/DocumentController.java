@@ -1,13 +1,12 @@
 package io.github.hinn1411.docviewer.api;
 
 import io.github.hinn1411.docviewer.api.dto.DocumentsResponse;
-import io.github.hinn1411.docviewer.api.error.MissingCallerException;
-import io.github.hinn1411.docviewer.api.error.SourcesUnavailableException;
+import io.github.hinn1411.docviewer.domain.Caller;
+import io.github.hinn1411.docviewer.domain.DocumentSearchResult;
+import io.github.hinn1411.docviewer.domain.SearchOutcome;
+import io.github.hinn1411.docviewer.domain.Vin;
+import io.github.hinn1411.docviewer.domain.error.SourcesUnavailableException;
 import io.github.hinn1411.docviewer.search.DocumentSearchService;
-import io.github.hinn1411.docviewer.search.model.Caller;
-import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
-import io.github.hinn1411.docviewer.search.model.SearchOutcome;
-import io.github.hinn1411.docviewer.search.model.Vin;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -62,18 +61,11 @@ public class DocumentController {
       @Parameter(description = "Required: missing or blank gives 401", example = "dealer-1")
           @RequestHeader(name = "X-Dealership-Id", required = false)
           String dealershipId) {
-    Caller caller = callerFrom(userId, dealershipId);
+    Caller caller = new Caller(userId, dealershipId);
     DocumentSearchResult result = searchService.search(Vin.parse(vin), caller);
     if (result.outcome() == SearchOutcome.FAILED) {
       throw new SourcesUnavailableException(result.sources());
     }
     return DocumentsResponse.from(result);
-  }
-
-  private static Caller callerFrom(String userId, String dealershipId) {
-    if (userId == null || userId.isBlank() || dealershipId == null || dealershipId.isBlank()) {
-      throw new MissingCallerException();
-    }
-    return new Caller(userId, dealershipId);
   }
 }

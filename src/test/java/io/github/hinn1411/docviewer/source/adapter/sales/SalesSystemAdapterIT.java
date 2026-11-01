@@ -5,11 +5,11 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import io.github.hinn1411.docviewer.config.SourceClientsConfig;
-import io.github.hinn1411.docviewer.search.model.Document;
-import io.github.hinn1411.docviewer.search.model.DocumentType;
-import io.github.hinn1411.docviewer.search.model.FailureReason;
-import io.github.hinn1411.docviewer.search.model.Vin;
+import io.github.hinn1411.docviewer.config.client.SourceClientsConfig;
+import io.github.hinn1411.docviewer.domain.Document;
+import io.github.hinn1411.docviewer.domain.DocumentType;
+import io.github.hinn1411.docviewer.domain.FailureReason;
+import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.source.adapter.BaseSourceAdapterIT;
 import java.net.URI;
 import java.time.Instant;

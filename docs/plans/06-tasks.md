@@ -101,7 +101,7 @@ Serves FR1, A2, A10 · est 1 h · depends on T01
 
 **Tests first:** `VinTest.normalisesCaseAndWhitespace`, `rejectsWrongLength`, `rejectsLettersIOQ`, `masksAllButFirst3AndLast4`
 
-**Files:** `search/model/Vin.java`, `InvalidVinException.java`
+**Files:** `domain/Vin.java`, `domain/error/InvalidVinException.java`
 
 ### T06: Result merger
 Serves FR3, A6, A7 · est 2 h · depends on T05 · see invariants 2–7 in [`05-domain-model.md`](05-domain-model.md#invariants-each-one-is-a-unit-test)
@@ -114,7 +114,7 @@ Serves FR3, A6, A7 · est 2 h · depends on T05 · see invariants 2–7 in [`05-
 
 **Tests first:** `ResultMergerTest.sortsNewestFirstUndatedLast`, `breaksTiesBySourceThenSourceDocumentId`, `dedupesWithinSourceOnly`, `derivesOutcomeAndPartialFromStatuses`, `keepsSourceStaleFlagAndEveryOutcome`
 
-**Files:** `search/ResultMerger.java`, `search/model/*`
+**Files:** `domain/ResultMerger.java`, `domain/*`
 
 ---
 
@@ -138,7 +138,7 @@ Serves FR2, A3, A4, NFR5 · est 3 h · depends on T04, T05
 
 **Design note:** the retry is Spring Framework 7's `@Retryable(includes = SourceException.class, predicate = RetryOnTransientError.class, maxRetries = 1, delay = 100)` on the adapter **class** (not `fetch`, where the JDK proxy misses it), with `@EnableResilientMethods` on a config class (see [`01-project-setup.md`](01-project-setup.md#configuration-applicationyml)). It works through a proxy, so it applies only when another bean calls `fetch`, as `DocumentSearchService` does. The adapter builds its own client with `SourceClientsConfig.restClient(...)`, so T08 needs no new bean, only its `application.yml` entry.
 
-**Files:** `source/DocumentSource.java`, `source/SourceException.java`, `source/RetryOnTransientError.java`, `source/sales/*`, `config/SourceClientsConfig.java`
+**Files:** `source/DocumentSource.java`, `source/error/SourceException.java`, `source/error/RetryOnTransientError.java`, `source/adapter/sales/*`, `config/client/SourceClientsConfig.java`
 
 ### T08: Service System adapter
 Serves FR2, A4, NFR5 · est 2 h · depends on T07 (same pattern)
@@ -169,7 +169,7 @@ Serves FR2, NFR1, NFR2 · est 4 h · depends on T06, T07, T08
 - Measure latency with `System.nanoTime()`.
 - Timing assertions use the margins above: sequential calls would take at least 2 s.
 
-**Files:** `search/DocumentSearchService.java`, `config/ExecutorConfig.java`
+**Files:** `search/DocumentSearchService.java`, `config/execution/ExecutorConfig.java`
 
 ---
 
@@ -185,7 +185,7 @@ Serves NFR3, A10 · est 3 h · depends on T09 · details in [`04-data-model.md`]
 
 **Tests first:** `AuditRepositoryIT.savesOneRowPerSearch`, `DocumentSearchServiceTest.failsClosedWhenAuditFails`, `DocumentSearchServiceTest.auditsFailedSearches`
 
-**Files:** `V1__init.sql` (both tables, as in `04-data-model.md`), `persistence/AuditRepository.java`, `search/AccessAuditor.java`
+**Files:** `V1__init.sql` (both tables, as in `04-data-model.md`), `persistence/AuditRepository.java`, `search/support/audit/AccessAuditor.java`
 
 ### T11: Fallback snapshots
 Serves NFR2, A8 · est 3 h · depends on T10
@@ -200,7 +200,7 @@ Serves NFR2, A8 · est 3 h · depends on T10
 
 **Tests first:** `SnapshotRepositoryIT.newerCopyWins`, `ignoresCopiesOlderThan24h`, `DocumentSearchServiceTest.servesStaleCopyWhenSourceFails`, `datesCopyWhenTheSearchStarted`, `SnapshotFallbackTest.savesLiveAnswersInBackground`, `unavailableWhenCopyTooOld`, `unavailableWhenCopyCannotBeRead`, `snapshotSaveFailureIsOnlyLogged`, `rejectedBackgroundSaveIsOnlyLogged`, `SnapshotRepositoryIT.readsBackSavedDocuments`, `SnapshotCleanupJobIT.deletesExpiredSnapshots`
 
-**Files:** `persistence/SnapshotRepository.java` (the table is already in `V1__init.sql`, from T10), `persistence/SnapshotCleanupJob.java`, `search/SnapshotFallback.java`, `config/SchedulingConfig.java`
+**Files:** `persistence/SnapshotRepository.java` (the table is already in `V1__init.sql`, from T10), `job/SnapshotCleanupJob.java`, `search/support/fallback/SnapshotFallback.java`, `config/SchedulingConfig.java`
 
 ---
 

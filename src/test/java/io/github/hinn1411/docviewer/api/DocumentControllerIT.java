@@ -7,12 +7,12 @@ import static org.mockito.Mockito.doThrow;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.github.hinn1411.docviewer.TestcontainersConfiguration;
+import io.github.hinn1411.docviewer.domain.Document;
+import io.github.hinn1411.docviewer.domain.DocumentType;
+import io.github.hinn1411.docviewer.domain.Snapshot;
+import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.persistence.AuditRepository;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
-import io.github.hinn1411.docviewer.search.model.Document;
-import io.github.hinn1411.docviewer.search.model.DocumentType;
-import io.github.hinn1411.docviewer.search.model.Snapshot;
-import io.github.hinn1411.docviewer.search.model.Vin;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;

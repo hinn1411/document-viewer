@@ -1,6 +1,6 @@
 package io.github.hinn1411.docviewer.api.dto;
 
-import io.github.hinn1411.docviewer.search.model.DocumentSearchResult;
+import io.github.hinn1411.docviewer.domain.DocumentSearchResult;
 import java.util.List;
 
 /** The body of a successful search. */
