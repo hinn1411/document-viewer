@@ -38,11 +38,11 @@ Send the five demo VINs, wait about 20 s, then send them again.
 
 | VIN | What the mocks do | Status | `partial` | Grafana: where it shows |
 |---|---|---|---|---|
-| `WVWZZZ1JZXW000001` | Both sources answer | 200 | `false` | **Request rate**: `complete` |
-| `WVWZZZ1JZXW000002` | Service is too slow, so the search takes about 1.5 s | 200 | `true` | **Partial rate**; **SERVICE → Calls by result**: `timeout`; **p95 latency** rises |
-| `WVWZZZ1JZXW000003` | Service returns 503 | 200 | `true` | **Partial rate**; **SERVICE → Calls by result**: `error` |
-| `WVWZZZ1JZXW000004` | Both sources return 503 | 503 | not in the response | **Request rate**: `failed`; **SALES → Calls by result**: `error` |
-| `WVWZZZ1JZXW000005` | Both sources answer with no documents | 200 | `false` | **Request rate**: `complete` |
+| `WVWZZZ1JZXW000001` | Both sources answer | 200 | `false` | **Searches per second, by outcome**: `complete` |
+| `WVWZZZ1JZXW000002` | Service is too slow, so the search takes about 1.5 s | 200 | `true` | **Share of searches with partial results**; **Service calls per second, by result**: `timeout`; **Search response time, p95** rises |
+| `WVWZZZ1JZXW000003` | Service returns 503 | 200 | `true` | **Share of searches with partial results**; **Service calls per second, by result**: `error` |
+| `WVWZZZ1JZXW000004` | Both sources return 503 | 503 | not in the response | **Searches per second, by outcome**: `failed`; **Sales calls per second, by result**: `error` |
+| `WVWZZZ1JZXW000005` | Both sources answer with no documents | 200 | `false` | **Searches per second, by outcome**: `complete` |
 
 These two requests are rejected before any search runs, so Grafana shows nothing for them:
 
@@ -78,7 +78,7 @@ A search that can't be audited must not return documents, even when both sources
    docker compose stop postgres
    ```
 2. In Swagger, search for `WVWZZZ1JZXW000001`, wait about 20 s, then search again. Both return **503**, with no documents.
-3. In Grafana, check that **Audit failures** rises and **Request rate** shows `failed`.
+3. In Grafana, check that **Failed audit saves, last 5 minutes** rises and **Searches per second, by outcome** shows `failed`.
 4. **Alert (Prometheus):** after about 30 s, the [alerts page](http://localhost:9090/alerts) shows `AuditWriteFailing` and `AvailabilityTargetMissed` firing.
 5. Start the database again.
    ```bash
@@ -100,7 +100,7 @@ When a source fails, the service serves its saved copy. After enough failures, t
    ```json
    { "source": "SERVICE", "status": "STALE", "reason": "ERROR", "documentCount": 2, "dataAsOf": "<time of the saved copy>" }
    ```
-3. In Grafana, check that **SERVICE → Fallback copies served** rises.
+3. In Grafana, check that **Service fallback copies served per second** rises.
 
 ### Open breaker
 The breaker needs at least 10 calls in 60 s, with at least half failing. To save clicks, stay on the Swagger page, press `F12`, open **Console**, and run this loop. Chrome may ask you to type `allow pasting` first.
@@ -114,7 +114,7 @@ for (let i = 0; i < 15; i++) {
 
 1. Check that the Console prints 15 lines ending in `200`. Users still get a result while the source is down.
 2. In Swagger, search for `WVWZZZ1JZXW000001` straight away. The `SERVICE` entry now has `"reason": "CIRCUIT_OPEN"`, which means no call was made. If it still shows `ERROR`, more than 30 s have passed, so run the loop again and search straight away.
-3. In Grafana, check that the `circuit_open` line in **SERVICE → Calls by result** rises above 0 within about 30 s. The graph is a 5-minute average, so expect small values, around 0.02 req/s.
+3. In Grafana, check that the `circuit_open` line in **Service calls per second, by result** rises above 0 within about 30 s. The graph is a 5-minute average, so expect small values, around 0.02 req/s.
 
 ### Recovery
 1. Start the Service mock again.
@@ -124,7 +124,7 @@ for (let i = 0; i < 15; i++) {
 2. Wait about 35 s, so the breaker's 30 s open period has passed.
 3. Run the Console loop again, changing `15` to `5`.
 4. In Swagger, search for `WVWZZZ1JZXW000001`. It returns **200** with `partial: false`, and `SERVICE` has `"status": "OK"`.
-5. In Grafana, check that **SERVICE → Calls by result** shows `ok` rising. The `circuit_open` line fades over the next 5 minutes, because the graph averages over that window.
+5. In Grafana, check that **Service calls per second, by result** shows `ok` rising. The `circuit_open` line fades over the next 5 minutes, because the graph averages over that window.
 
 ## 6. Clean up
 Stop the server, then remove the containers and their data.

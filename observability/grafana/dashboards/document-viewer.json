@@ -12,7 +12,7 @@
     {
       "id": 1,
       "type": "row",
-      "title": "Service",
+      "title": "Document search (all requests)",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -24,7 +24,7 @@
     {
       "id": 2,
       "type": "timeseries",
-      "title": "Request rate",
+      "title": "Searches per second, by outcome",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -56,7 +56,7 @@
     {
       "id": 3,
       "type": "timeseries",
-      "title": "Partial rate",
+      "title": "Share of searches with partial results",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -88,7 +88,7 @@
     {
       "id": 4,
       "type": "timeseries",
-      "title": "p95 latency (target 1 s)",
+      "title": "Search response time, p95 (target 1 s)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -120,7 +120,7 @@
     {
       "id": 5,
       "type": "row",
-      "title": "SALES",
+      "title": "Sales system",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -132,7 +132,7 @@
     {
       "id": 6,
       "type": "timeseries",
-      "title": "Calls by result",
+      "title": "Sales calls per second, by result",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -164,7 +164,7 @@
     {
       "id": 7,
       "type": "timeseries",
-      "title": "p95 latency",
+      "title": "Sales call duration, p95",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -196,7 +196,7 @@
     {
       "id": 8,
       "type": "timeseries",
-      "title": "Fallback copies served",
+      "title": "Sales fallback copies served per second",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -228,7 +228,7 @@
     {
       "id": 9,
       "type": "row",
-      "title": "SERVICE",
+      "title": "Service system",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -240,7 +240,7 @@
     {
       "id": 10,
       "type": "timeseries",
-      "title": "Calls by result",
+      "title": "Service calls per second, by result",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -272,7 +272,7 @@
     {
       "id": 11,
       "type": "timeseries",
-      "title": "p95 latency",
+      "title": "Service call duration, p95",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -304,7 +304,7 @@
     {
       "id": 12,
       "type": "timeseries",
-      "title": "Fallback copies served",
+      "title": "Service fallback copies served per second",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -336,7 +336,7 @@
     {
       "id": 13,
       "type": "row",
-      "title": "Audit",
+      "title": "Access audit",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -348,7 +348,7 @@
     {
       "id": 14,
       "type": "timeseries",
-      "title": "Audit failures",
+      "title": "Failed audit saves, last 5 minutes",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
