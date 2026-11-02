@@ -34,6 +34,10 @@ public class SnapshotCleanupJob {
   public void deleteExpiredSnapshots() {
     Instant cutoff = clock.instant().minus(maxAge);
     int deleted = snapshotRepository.deleteOlderThan(cutoff);
-    log.info("Deleted expired fallback copies: deleted={}, cutoff={}", deleted, cutoff);
+    log.atInfo()
+        .setMessage("Deleted expired fallback copies")
+        .addKeyValue("deleted", deleted)
+        .addKeyValue("cutoff", cutoff)
+        .log();
   }
 }

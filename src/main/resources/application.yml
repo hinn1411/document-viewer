@@ -36,6 +36,11 @@ docviewer:
       connect-timeout: 300ms
       read-timeout: 1500ms
 
+logging:
+  structured:
+    format:
+      console: logstash # one JSON object per line, with flat level and trace fields
+
 management:
   endpoints:
     web:

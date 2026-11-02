@@ -61,7 +61,10 @@ public class ProblemHandler extends ResponseEntityExceptionHandler {
   /** Logs the class only, because an exception's message can contain the VIN. */
   @ExceptionHandler
   ResponseEntity<Object> unexpected(Exception failure, WebRequest request) {
-    log.error("Unexpected error: failure={}", failure.getClass().getName());
+    log.atError()
+        .setMessage("Unexpected error")
+        .addKeyValue("failure", failure.getClass().getName())
+        .log();
     return respond(
         failure,
         problem(HttpStatus.INTERNAL_SERVER_ERROR, "internal-error", "An unexpected error occurred"),

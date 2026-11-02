@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import java.time.Duration;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -61,9 +62,13 @@ public class DocumentController {
       @Parameter(description = "Required: missing or blank gives 401", example = "dealer-1")
           @RequestHeader(name = "X-Dealership-Id", required = false)
           String dealershipId) {
+    long start = System.nanoTime();
     Caller caller = new Caller(userId, dealershipId);
     DocumentSearchResult result = searchService.search(Vin.parse(vin), caller);
-    if (result.outcome() == SearchOutcome.FAILED) {
+    boolean failed = result.outcome() == SearchOutcome.FAILED;
+    SearchSummaryLog.write(
+        caller, result, failed ? 503 : 200, Duration.ofNanos(System.nanoTime() - start).toMillis());
+    if (failed) {
       throw new SourcesUnavailableException(result.sources());
     }
     return DocumentsResponse.from(result);
