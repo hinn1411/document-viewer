@@ -157,6 +157,20 @@ class LoggingIT {
     assertThat(output.toString()).doesNotContain(VIN_COMPLETE, "Failing row");
   }
 
+  @Test
+  void logsRejectedRequestWithoutVin(CapturedOutput output) {
+    search("NOT-A-VIN");
+
+    List<JsonNode> rejected =
+        jsonLinesIn(output).stream()
+            .filter(line -> line.get("message").asString().equals("Request rejected"))
+            .toList();
+    assertThat(rejected).hasSize(1);
+    assertThat(rejected.getFirst().get("type").asString()).isEqualTo("invalid-vin");
+    assertThat(rejected.getFirst().get("httpStatus").asInt()).isEqualTo(400);
+    assertThat(output.toString()).doesNotContain("NOT-A-VIN");
+  }
+
   private ResponseEntity<String> search(String vin) {
     return RestClient.create("http://localhost:" + port)
         .get()

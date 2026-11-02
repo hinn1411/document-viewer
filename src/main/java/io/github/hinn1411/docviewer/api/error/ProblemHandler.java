@@ -31,14 +31,25 @@ public class ProblemHandler extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler
   ResponseEntity<Object> invalidVin(InvalidVinException failure, WebRequest request) {
+    logRejected("invalid-vin", HttpStatus.BAD_REQUEST);
     return respond(
         failure, problem(HttpStatus.BAD_REQUEST, "invalid-vin", failure.getMessage()), request);
   }
 
   @ExceptionHandler
   ResponseEntity<Object> missingCaller(MissingCallerException failure, WebRequest request) {
+    logRejected("missing-caller", HttpStatus.UNAUTHORIZED);
     return respond(
         failure, problem(HttpStatus.UNAUTHORIZED, "missing-caller", failure.getMessage()), request);
+  }
+
+  /** Never the VIN the caller sent: it may be a real one that just failed validation. */
+  private static void logRejected(String type, HttpStatus status) {
+    log.atInfo()
+        .setMessage("Request rejected")
+        .addKeyValue("type", type)
+        .addKeyValue("httpStatus", status.value())
+        .log();
   }
 
   @ExceptionHandler
