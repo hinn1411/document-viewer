@@ -28,6 +28,7 @@ Serves NFR1, NFR2, NFR6.
 | `docviewer_audit_failures_total` | Counter | — | when the audit insert fails |
 
 - All six are kept in one `DocumentViewerMetrics` class, so the names live in one place.
+- `docviewer_source_calls_total` starts at 0 for every source and result, because `rate()` ignores the jump from no series to a value. Without this, a short burst of a new result shows as 0 in Grafana.
 - The histograms publish buckets around the targets: 0.25, 0.5, 1, 2 and 2.5 s.
 - Spring Boot's own HTTP metrics are kept. The `RestClient`s must come from Spring's auto-configured `RestClient.Builder` to get them.
 

@@ -66,6 +66,7 @@ public class DocumentSearchService {
     this.clock = clock;
     this.breakers = breakers;
     this.metrics = metrics;
+    sources.forEach(source -> metrics.registerSource(source.name()));
   }
 
   public DocumentSearchResult search(Vin vin, Caller caller) {

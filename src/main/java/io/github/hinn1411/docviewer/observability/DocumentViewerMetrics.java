@@ -44,13 +44,20 @@ public class DocumentViewerMetrics {
     requestDuration.record(duration);
   }
 
+  /**
+   * Creates a source's call counters at 0. Prometheus' rate() ignores the jump from no series to a
+   * value, so without this a short burst of a new result would show as 0 in Grafana.
+   */
+  public void registerSource(String source) {
+    sourceCalls(source, null);
+    for (FailureReason reason : FailureReason.values()) {
+      sourceCalls(source, reason);
+    }
+  }
+
   /** Records one source's live result. An open breaker made no call, so it has no duration. */
   public void recordSourceCall(SourceOutcome outcome) {
-    String result =
-        outcome.reason() == null ? "ok" : outcome.reason().name().toLowerCase(Locale.ROOT);
-    registry
-        .counter("docviewer.source.calls", "source", outcome.source(), "result", result)
-        .increment();
+    sourceCalls(outcome.source(), outcome.reason()).increment();
     if (outcome.reason() != FailureReason.CIRCUIT_OPEN) {
       Timer.builder("docviewer.source.duration")
           .tag("source", outcome.source())
@@ -66,5 +73,11 @@ public class DocumentViewerMetrics {
 
   public void recordAuditFailure() {
     auditFailures.increment();
+  }
+
+  /** {@code reason} is null for a call that succeeded. */
+  private Counter sourceCalls(String source, FailureReason reason) {
+    String result = reason == null ? "ok" : reason.name().toLowerCase(Locale.ROOT);
+    return registry.counter("docviewer.source.calls", "source", source, "result", result);
   }
 }

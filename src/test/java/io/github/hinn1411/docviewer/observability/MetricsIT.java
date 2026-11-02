@@ -134,6 +134,12 @@ class MetricsIT {
         .isEqualTo(before + 1);
   }
 
+  /** No test in this class opens the Sales breaker, so only startup can have created this one. */
+  @Test
+  void startsSourceCallCountersAtZero() {
+    assertThat(scrape()).contains("result=\"circuit_open\",source=\"SALES\"} 0.0");
+  }
+
   private double count(String name, String... tags) {
     Counter counter = registry.find(name).tags(tags).counter();
     return counter == null ? 0 : counter.count();
