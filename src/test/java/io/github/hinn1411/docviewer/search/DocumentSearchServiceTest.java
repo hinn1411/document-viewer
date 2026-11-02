@@ -50,12 +50,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
 
 /**
  * T09: sources are called at once, each with a deadline, and each ends as one outcome. T10: audit.
- * T11: fallback copies.
+ * T11: fallback copies. T15: source failure logs.
  */
 class DocumentSearchServiceTest {
 
@@ -289,6 +292,31 @@ class DocumentSearchServiceTest {
     assertThat(service.reason()).isEqualTo(FailureReason.CIRCUIT_OPEN);
     assertThat(service.dataAsOf()).isEqualTo(savedAt);
     assertThat(service.documents()).extracting(Document::source).containsExactly("SERVICE");
+  }
+
+  @Test
+  @ExtendWith(OutputCaptureExtension.class)
+  void logsTimeoutPastDeadlineAtWarn(CapturedOutput output) {
+    search(answers("SALES", document("SALES")), slow("SERVICE", Duration.ofSeconds(5)));
+
+    assertThat(linesAtLevel(output, "WARN"))
+        .anySatisfy(line -> assertThat(line).contains("SERVICE", "TIMEOUT"));
+  }
+
+  @Test
+  @ExtendWith(OutputCaptureExtension.class)
+  void logsUnexpectedSourceFailureWithClassOnly(CapturedOutput output) {
+    search(
+        answers("SALES", document("SALES")),
+        fails("SERVICE", new IllegalStateException("Bad response for " + VIN.value())));
+
+    assertThat(linesAtLevel(output, "ERROR"))
+        .anySatisfy(line -> assertThat(line).contains("SERVICE", "IllegalStateException"));
+    assertThat(output.toString()).doesNotContain(VIN.value(), "Bad response");
+  }
+
+  private static List<String> linesAtLevel(CapturedOutput output, String level) {
+    return output.getOut().lines().filter(line -> line.contains(" " + level + " ")).toList();
   }
 
   private AccessAuditRecord savedRecord() {
