@@ -6,6 +6,7 @@ import io.github.hinn1411.docviewer.domain.DocumentSearchResult;
 import io.github.hinn1411.docviewer.domain.SourceOutcome;
 import io.github.hinn1411.docviewer.domain.SourceStatus;
 import io.github.hinn1411.docviewer.domain.error.AuditUnavailableException;
+import io.github.hinn1411.docviewer.observability.DocumentViewerMetrics;
 import io.github.hinn1411.docviewer.observability.TraceIds;
 import io.github.hinn1411.docviewer.persistence.AuditRepository;
 import io.micrometer.tracing.Tracer;
@@ -26,11 +27,14 @@ public class AccessAuditor {
   private final Clock clock;
   private final Tracer tracer;
   private final AuditRepository auditRepository;
+  private final DocumentViewerMetrics metrics;
 
-  public AccessAuditor(Clock clock, Tracer tracer, AuditRepository auditRepository) {
+  public AccessAuditor(
+      Clock clock, Tracer tracer, AuditRepository auditRepository, DocumentViewerMetrics metrics) {
     this.clock = clock;
     this.tracer = tracer;
     this.auditRepository = auditRepository;
+    this.metrics = metrics;
   }
 
   public void record(Caller caller, DocumentSearchResult result) {
@@ -47,6 +51,7 @@ public class AccessAuditor {
     try {
       auditRepository.save(record);
     } catch (RuntimeException failure) {
+      metrics.recordAuditFailure();
       // The class only, because PostgreSQL's messages can hold the VIN.
       log.atError()
           .setMessage("Saving the audit record failed")

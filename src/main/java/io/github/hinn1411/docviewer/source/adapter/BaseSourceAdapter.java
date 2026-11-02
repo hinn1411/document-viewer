@@ -41,9 +41,11 @@ public abstract class BaseSourceAdapter<I> implements DocumentSource {
   private final String name;
   private final RestClient restClient;
 
-  protected BaseSourceAdapter(String name, DocViewerProperties.SourceClient settings) {
+  /** {@code builder} is Spring's auto-configured one, which gives the client its HTTP metrics. */
+  protected BaseSourceAdapter(
+      String name, RestClient.Builder builder, DocViewerProperties.SourceClient settings) {
     this.name = name;
-    this.restClient = SourceClientsConfig.restClient(settings);
+    this.restClient = SourceClientsConfig.restClient(builder, settings);
   }
 
   /** Calls the source and returns its items, or null if the response is unreadable. */

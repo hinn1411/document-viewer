@@ -17,15 +17,18 @@ import io.github.hinn1411.docviewer.domain.SearchOutcome;
 import io.github.hinn1411.docviewer.domain.SourceOutcome;
 import io.github.hinn1411.docviewer.domain.SourceStatus;
 import io.github.hinn1411.docviewer.domain.Vin;
+import io.github.hinn1411.docviewer.observability.DocumentViewerMetrics;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
 import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
 import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
 import io.github.hinn1411.docviewer.source.adapter.sales.SalesSystemAdapter;
 import io.github.hinn1411.docviewer.source.adapter.service.ServiceSystemAdapter;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -35,6 +38,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 /** T09: the real adapters against the demo stubs, where the Service mock answers after 5 s. */
 @SpringBootTest(
     classes = {
+      RestClientAutoConfiguration.class,
+      SimpleMeterRegistry.class,
+      DocumentViewerMetrics.class,
       SourceClientsConfig.class,
       SourceCircuitBreakerConfig.class,
       ExecutorConfig.class,

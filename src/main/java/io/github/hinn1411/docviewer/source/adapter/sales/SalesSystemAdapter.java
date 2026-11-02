@@ -24,8 +24,8 @@ public class SalesSystemAdapter extends BaseSourceAdapter<SalesSystemAdapter.Sal
 
   private final ZoneId dealershipZone;
 
-  public SalesSystemAdapter(DocViewerProperties properties) {
-    super("SALES", properties.sources().get("sales"));
+  public SalesSystemAdapter(RestClient.Builder builder, DocViewerProperties properties) {
+    super("SALES", builder, properties.sources().get("sales"));
     this.dealershipZone = properties.dealershipZone();
   }
 

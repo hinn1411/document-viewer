@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -28,7 +29,11 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /** T08: maps the flat Service response. The shared failure tests are in the base class. */
 @SpringBootTest(
-    classes = {SourceClientsConfig.class, ServiceSystemAdapter.class},
+    classes = {
+      RestClientAutoConfiguration.class,
+      SourceClientsConfig.class,
+      ServiceSystemAdapter.class
+    },
     webEnvironment = WebEnvironment.NONE)
 class ServiceSystemAdapterIT extends BaseSourceAdapterIT {
 

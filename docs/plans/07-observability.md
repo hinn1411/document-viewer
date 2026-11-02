@@ -22,12 +22,13 @@ Serves NFR1, NFR2, NFR6.
 |---|---|---|---|
 | `docviewer_requests_total` | Counter | `outcome`, `status` | the controller, once per request |
 | `docviewer_request_duration_seconds` | Histogram | — | the controller |
-| `docviewer_source_calls_total` | Counter | `source`, `result` (`ok`, `timeout`, `error`) | `DocumentSearchService`, once per source call |
+| `docviewer_source_calls_total` | Counter | `source`, `result` (`ok`, `timeout`, `error`, `circuit_open`) | `DocumentSearchService`, once per source per search |
 | `docviewer_source_duration_seconds` | Histogram | `source` | `DocumentSearchService` |
 | `docviewer_fallback_served_total` | Counter | `source` | when a `STALE` copy is used |
 | `docviewer_audit_failures_total` | Counter | — | when the audit insert fails |
 
 - All six are kept in one `DocumentViewerMetrics` class, so the names live in one place.
+- `docviewer_source_calls_total` starts at 0 for every source and result, because `rate()` ignores the jump from no series to a value. Without this, a short burst of a new result shows as 0 in Grafana.
 - The histograms publish buckets around the targets: 0.25, 0.5, 1, 2 and 2.5 s.
 - Spring Boot's own HTTP metrics are kept. The `RestClient`s must come from Spring's auto-configured `RestClient.Builder` to get them.
 
@@ -38,7 +39,7 @@ Serves NFR1, NFR2, NFR6.
 | `LatencyTargetMissed` | p95 of `docviewer_request_duration_seconds` > 1 s for 10 min | urgent |
 | `AvailabilityTargetMissed` | the 5xx share of `docviewer_requests_total` (`status=~"5.."`) > 0.1% over 30 min. This includes audit-failure 503s, not only `outcome="failed"` | urgent |
 | `AuditWriteFailing` | `increase(docviewer_audit_failures_total[5m]) > 0` | urgent |
-| `SourceDegraded` | per `source`: timeouts + errors > 50% of calls for 5 min | warning |
+| `SourceDegraded` | per `source`: anything but `ok`, including an open breaker, > 50% of calls for 5 min | warning |
 
 **Dashboard** (`observability/grafana/dashboards/document-viewer.json`):
 - request rate, partial rate and p95 latency
@@ -51,7 +52,7 @@ Serves NFR1, NFR2, NFR6.
 3. `docker compose up` shows the dashboard with data after a few demo requests.
 4. `promtool check rules observability/alerts.yml` passes.
 
-**Tests first:** `MetricsIT.countsTimeoutPerSource`, `MetricsIT.countsPartialRequests`, `MetricsIT.exposesAllSixMetrics`, all using `MeterRegistry` and `/actuator/prometheus`
+**Tests first:** `MetricsIT.countsPartialSearchWhenSourceTimesOut`, `exposesAllSixMetrics`, `countsFailedAuditAsFailedRequest`, `countsOpenBreakerAsCircuitOpen`, all using `MeterRegistry` and `/actuator/prometheus`
 
 ## T14: Tracing
 

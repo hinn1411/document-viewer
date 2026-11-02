@@ -28,7 +28,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 - [x] **T12b** One circuit breaker per source
 
 **P5 Observability**
-- [ ] **T13** Metrics, dashboard and alert rules
+- [x] **T13** Metrics, dashboard and alert rules
 - [ ] **T14** Tracing
 - [x] **T15** Structured logs
 

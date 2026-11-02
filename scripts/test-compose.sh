@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # T04: checks that the Compose stack comes up healthy and serves the demo-VIN table with the shared stubs.
-# Local only, not in CI. Needs Docker, jq and free ports 5432, 8081 and 8082, so stop your own stack first.
+# Local only, not in CI. Needs Docker, jq and free ports 5432, 8081, 8082, 9090 and 3000, so stop your own stack first.
 # Run from anywhere: bash scripts/test-compose.sh
 set -u
 
