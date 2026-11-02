@@ -8,7 +8,7 @@ paths:
 Applies to all production code.
 
 ## Package layout (`io.github.hinn1411.docviewer`)
-- `api/`: controller; `SearchSummaryLog`; `dto/`; `error/` (`ProblemHandler`); `filter/` (`ResponseHeadersFilter`)
+- `api/`: controller; `dto/`; `error/` (`ProblemHandler`); `filter/` (`ResponseHeadersFilter`); `logging/` (`SearchSummaryLog`)
 - `domain/`: records, enums and `ResultMerger`; `error/` (domain exceptions)
 - `search/`: `DocumentSearchService`; `support/audit/` (`AccessAuditor`); `support/fallback/` (`SnapshotFallback`)
 - `source/`: the `DocumentSource` interface; `adapter/` (`BaseSourceAdapter`, `sales/`, `service/`); `error/` (`SourceException`, `RetryOnTransientError`)

@@ -1,6 +1,7 @@
 package io.github.hinn1411.docviewer.api;
 
 import io.github.hinn1411.docviewer.api.dto.DocumentsResponse;
+import io.github.hinn1411.docviewer.api.logging.SearchSummaryLog;
 import io.github.hinn1411.docviewer.domain.Caller;
 import io.github.hinn1411.docviewer.domain.DocumentSearchResult;
 import io.github.hinn1411.docviewer.domain.SearchOutcome;
