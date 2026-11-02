@@ -14,9 +14,12 @@ import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.resilience.annotation.Retryable;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 /**
  * What every source adapter shares: the call, its failures and dropping bad items. An adapter only
@@ -32,6 +35,8 @@ import org.springframework.web.client.RestClientException;
     maxRetries = 1,
     delay = 100)
 public abstract class BaseSourceAdapter<I> implements DocumentSource {
+
+  private static final Logger log = LoggerFactory.getLogger(BaseSourceAdapter.class);
 
   private final String name;
   private final RestClient restClient;
@@ -56,9 +61,14 @@ public abstract class BaseSourceAdapter<I> implements DocumentSource {
   public List<Document> fetch(Vin vin) {
     List<I> items = callSource(vin);
     if (items == null || items.contains(null)) {
+      log.atWarn()
+          .setMessage("Unreadable source response")
+          .addKeyValue("source", name)
+          .addKeyValue("vin", vin.masked())
+          .log();
       throw new SourceException(FailureReason.ERROR, name + " response is unreadable");
     }
-    return items.stream().flatMap(item -> toDocumentOrDrop(item).stream()).toList();
+    return items.stream().flatMap(item -> toDocumentOrDrop(item, vin).stream()).toList();
   }
 
   /** Builds a document, applying the rules every source shares. */
@@ -77,15 +87,40 @@ public abstract class BaseSourceAdapter<I> implements DocumentSource {
     try {
       return readItems(restClient, vin);
     } catch (RestClientException failure) {
+      logFailedAttempt(vin, failure);
       throw SourceException.from(failure);
     }
   }
 
+  /**
+   * Per attempt, so a retry shows up. At INFO, because the search service writes the one WARN per
+   * failed source. The class only, because Spring's messages contain the URL, and so the VIN.
+   */
+  private void logFailedAttempt(Vin vin, RestClientException failure) {
+    Integer httpStatus =
+        failure instanceof RestClientResponseException response
+            ? response.getStatusCode().value()
+            : null;
+    log.atInfo()
+        .setMessage("Source attempt failed")
+        .addKeyValue("source", name)
+        .addKeyValue("vin", vin.masked())
+        .addKeyValue("failure", failure.getClass().getName())
+        .addKeyValue("httpStatus", httpStatus)
+        .log();
+  }
+
   /** Empty for a bad item: one bad item is dropped and the rest of the response is still good. */
-  private Optional<Document> toDocumentOrDrop(I item) {
+  private Optional<Document> toDocumentOrDrop(I item, Vin vin) {
     try {
       return Optional.of(toDocument(item));
     } catch (DateTimeException | IllegalArgumentException badItem) {
+      log.atWarn()
+          .setMessage("Dropped bad source item")
+          .addKeyValue("source", name)
+          .addKeyValue("vin", vin.masked())
+          .addKeyValue("failure", badItem.getClass().getName())
+          .log();
       return Optional.empty();
     }
   }

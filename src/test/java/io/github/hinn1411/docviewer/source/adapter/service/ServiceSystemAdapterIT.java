@@ -15,11 +15,14 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -117,6 +120,21 @@ class ServiceSystemAdapterIT extends BaseSourceAdapterIT {
         record(6L, "MOT", DATE, LINK));
 
     assertThat(source.fetch(VIN)).extracting(Document::id).containsExactly("SERVICE:6");
+  }
+
+  @Test
+  @ExtendWith(OutputCaptureExtension.class)
+  void logsDroppedItemAtWarn(CapturedOutput output) {
+    stubRecords(record(null, "MOT", DATE, LINK));
+
+    source.fetch(VIN);
+
+    assertThat(output.getOut().lines())
+        .filteredOn(line -> line.contains("Dropped bad source item"))
+        .singleElement()
+        .satisfies(
+            line -> assertThat(line).contains("\"level\":\"WARN\"", "\"source\":\"SERVICE\""));
+    assertThat(output.toString()).doesNotContain(VIN.value());
   }
 
   @Test
