@@ -5,6 +5,7 @@ import io.github.hinn1411.docviewer.domain.Snapshot;
 import io.github.hinn1411.docviewer.domain.SourceOutcome;
 import io.github.hinn1411.docviewer.domain.SourceStatus;
 import io.github.hinn1411.docviewer.domain.Vin;
+import io.github.hinn1411.docviewer.observability.DocumentViewerMetrics;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
 import java.time.Clock;
 import java.time.Duration;
@@ -30,16 +31,19 @@ public class SnapshotFallback {
   private final SnapshotRepository snapshotRepository;
   private final ExecutorService executor;
   private final Duration maxAge;
+  private final DocumentViewerMetrics metrics;
 
   public SnapshotFallback(
       Clock clock,
       SnapshotRepository snapshotRepository,
       ExecutorService sourceCallExecutor,
-      DocViewerProperties properties) {
+      DocViewerProperties properties,
+      DocumentViewerMetrics metrics) {
     this.clock = clock;
     this.snapshotRepository = snapshotRepository;
     this.executor = sourceCallExecutor;
     this.maxAge = properties.fallbackMaxAge();
+    this.metrics = metrics;
   }
 
   /** Turns a failed outcome into a stale one if a recent copy exists. Others pass through. */
@@ -64,6 +68,7 @@ public class SnapshotFallback {
         .addKeyValue("reason", outcome.reason())
         .addKeyValue("dataAsOf", copy.get().fetchedAt())
         .log();
+    metrics.recordFallbackServed(outcome.source());
     return SourceOutcome.stale(
         outcome.source(),
         outcome.reason(),

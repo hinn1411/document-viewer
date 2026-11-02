@@ -272,7 +272,7 @@ The main risk is the two source systems we don't control. So we watch the servic
 |---|---|---|---|
 | `docviewer_requests_total` | Counter | `outcome` (complete, partial, failed), `status` | Availability and how often results are partial |
 | `docviewer_request_duration_seconds` | Histogram | — | Latency against the 1 s target |
-| `docviewer_source_calls_total` | Counter | `source`, `result` (ok, timeout, error) | Health of each source system |
+| `docviewer_source_calls_total` | Counter | `source`, `result` (ok, timeout, error, circuit_open) | Health of each source system |
 | `docviewer_source_duration_seconds` | Histogram | `source` | Which source is slow |
 | `docviewer_fallback_served_total` | Counter | `source` | How often users see stale data |
 | `docviewer_audit_failures_total` | Counter | — | Compliance risk. Triggers the urgent alert |

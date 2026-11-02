@@ -9,6 +9,7 @@ import io.github.hinn1411.docviewer.domain.ResultMerger;
 import io.github.hinn1411.docviewer.domain.SourceOutcome;
 import io.github.hinn1411.docviewer.domain.SourceStatus;
 import io.github.hinn1411.docviewer.domain.Vin;
+import io.github.hinn1411.docviewer.observability.DocumentViewerMetrics;
 import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
 import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
 import io.github.hinn1411.docviewer.source.DocumentSource;
@@ -44,6 +45,7 @@ public class DocumentSearchService {
   private final SnapshotFallback fallback;
   private final Clock clock;
   private final CircuitBreakerRegistry breakers;
+  private final DocumentViewerMetrics metrics;
 
   public DocumentSearchService(
       List<DocumentSource> sources,
@@ -53,7 +55,8 @@ public class DocumentSearchService {
       AccessAuditor auditor,
       SnapshotFallback fallback,
       Clock clock,
-      CircuitBreakerRegistry breakers) {
+      CircuitBreakerRegistry breakers,
+      DocumentViewerMetrics metrics) {
     this.sources = sources;
     this.merger = merger;
     this.sourceCallExecutor = sourceCallExecutor;
@@ -62,6 +65,7 @@ public class DocumentSearchService {
     this.fallback = fallback;
     this.clock = clock;
     this.breakers = breakers;
+    this.metrics = metrics;
   }
 
   public DocumentSearchResult search(Vin vin, Caller caller) {
@@ -74,6 +78,7 @@ public class DocumentSearchService {
             .map(CompletableFuture::join)
             .map(
                 outcome -> {
+                  metrics.recordSourceCall(outcome);
                   logIfCallFailed(outcome);
                   return fallback.applyTo(vin, outcome);
                 })

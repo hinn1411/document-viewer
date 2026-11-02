@@ -26,6 +26,7 @@ import io.github.hinn1411.docviewer.domain.SourceOutcome;
 import io.github.hinn1411.docviewer.domain.SourceStatus;
 import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.domain.error.AuditUnavailableException;
+import io.github.hinn1411.docviewer.observability.DocumentViewerMetrics;
 import io.github.hinn1411.docviewer.persistence.AuditRepository;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
 import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
@@ -33,6 +34,7 @@ import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
 import io.github.hinn1411.docviewer.source.DocumentSource;
 import io.github.hinn1411.docviewer.source.error.SourceException;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.tracing.Tracer;
 import java.net.URI;
 import java.time.Clock;
@@ -328,9 +330,10 @@ class DocumentSearchServiceTest {
   private DocumentSearchResult search(DocumentSource... sources) {
     DocViewerProperties properties =
         new DocViewerProperties(DEADLINE, MAX_AGE, ZoneOffset.UTC, Map.of());
-    AccessAuditor auditor = new AccessAuditor(clock, tracer, auditRepository);
+    DocumentViewerMetrics metrics = new DocumentViewerMetrics(new SimpleMeterRegistry());
+    AccessAuditor auditor = new AccessAuditor(clock, tracer, auditRepository, metrics);
     SnapshotFallback fallback =
-        new SnapshotFallback(clock, snapshotRepository, executor, properties);
+        new SnapshotFallback(clock, snapshotRepository, executor, properties, metrics);
     return new DocumentSearchService(
             List.of(sources),
             new ResultMerger(),
@@ -339,7 +342,8 @@ class DocumentSearchServiceTest {
             auditor,
             fallback,
             clock,
-            breakers)
+            breakers,
+            metrics)
         .search(VIN, CALLER);
   }
 

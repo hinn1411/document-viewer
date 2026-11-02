@@ -14,7 +14,7 @@ Applies to all production code.
 - `source/`: the `DocumentSource` interface; `adapter/` (`BaseSourceAdapter`, `sales/`, `service/`); `error/` (`SourceException`, `RetryOnTransientError`)
 - `persistence/`: audit and snapshot repositories
 - `job/`: scheduled jobs (`SnapshotCleanupJob`)
-- `observability/`: `TraceIds`
+- `observability/`: `TraceIds`, `DocumentViewerMetrics`
 - `config/`: `properties/`, `client/`, `execution/` (executor, scheduling), `time/` (`Clock`)
 
 ## Dependencies

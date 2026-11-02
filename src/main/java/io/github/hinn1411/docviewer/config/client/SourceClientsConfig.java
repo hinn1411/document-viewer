@@ -18,10 +18,11 @@ public class SourceClientsConfig {
    * SocketTimeoutException}. Spring's JDK client reports a stalled body only as "closed". The read
    * timeout applies per read, so the search service's deadline limits the total time.
    */
-  public static RestClient restClient(DocViewerProperties.SourceClient source) {
+  public static RestClient restClient(
+      RestClient.Builder builder, DocViewerProperties.SourceClient source) {
     SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
     requestFactory.setConnectTimeout(source.connectTimeout());
     requestFactory.setReadTimeout(source.readTimeout());
-    return RestClient.builder().baseUrl(source.baseUrl()).requestFactory(requestFactory).build();
+    return builder.baseUrl(source.baseUrl()).requestFactory(requestFactory).build();
   }
 }

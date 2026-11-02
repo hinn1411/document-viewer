@@ -89,6 +89,7 @@ io.github.hinn1411.docviewer
 ├── job/
 │   └── SnapshotCleanupJob.java      deletes snapshots older than 24 h
 ├── observability/
+│   ├── DocumentViewerMetrics.java   the six metrics, so their names live in one place
 │   └── TraceIds.java                the ID shared by the audit row and X-Request-Id
 └── config/
     ├── properties/DocViewerProperties.java, CircuitBreakerProperties.java
@@ -163,13 +164,15 @@ public abstract class BaseSourceAdapter<I> implements DocumentSource { ... }
 
 ## Docker Compose (T04)
 
-`docker compose up` starts everything the app needs locally. Observability services are added in T13 and T14.
+`docker compose up` starts everything the app needs locally. T14 adds Jaeger.
 
 | Service | Image | Port | Purpose |
 |---|---|---|---|
 | `postgres` | `postgres:16` | 5432 | Audit log and snapshots |
 | `sales-api` | `wiremock/wiremock:3.13.2` | 8081 | Mock Sales System, stubs in `mocks/sales/mappings/*.json` |
 | `service-api` | `wiremock/wiremock:3.13.2` | 8082 | Mock Service System, stubs in `mocks/service/mappings/*.json` |
+| `prometheus` | `prom/prometheus:v3.5.0` | 9090 | Scrapes the app on the host, and loads `observability/alerts.yml` |
+| `grafana` | `grafana/grafana:12.1.0` | 3000 | The dashboard, provisioned from `observability/grafana/` |
 
 Each `mocks/<source>/` folder is mounted as WireMock's root (`/home/wiremock`), so the `mappings/` (and optional `__files/`) layout works for the Docker image and the JUnit extension alike.
 

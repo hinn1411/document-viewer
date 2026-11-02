@@ -16,8 +16,8 @@ import org.springframework.web.client.RestClient;
 @Component
 public class ServiceSystemAdapter extends BaseSourceAdapter<ServiceSystemAdapter.ServiceRecord> {
 
-  public ServiceSystemAdapter(DocViewerProperties properties) {
-    super("SERVICE", properties.sources().get("service"));
+  public ServiceSystemAdapter(RestClient.Builder builder, DocViewerProperties properties) {
+    super("SERVICE", builder, properties.sources().get("service"));
   }
 
   @Override

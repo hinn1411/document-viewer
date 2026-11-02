@@ -1,0 +1,35 @@
+# Design doc §6.1. Urgent: a target is missed or audits can't be saved. Warning: one source is
+# failing, while the fallback copy covers for it.
+groups:
+  - name: document-viewer
+    rules:
+      - alert: LatencyTargetMissed
+        expr: histogram_quantile(0.95, sum by (le) (rate(docviewer_request_duration_seconds_bucket[5m]))) > 1
+        for: 10m
+        labels:
+          severity: urgent
+        annotations:
+          summary: p95 search latency is over the 1 s target
+
+      - alert: AvailabilityTargetMissed
+        expr: sum(rate(docviewer_requests_total{status=~"5.."}[30m])) / sum(rate(docviewer_requests_total[30m])) > 0.001
+        labels:
+          severity: urgent
+        annotations:
+          summary: More than 0.1% of searches are failing
+
+      - alert: AuditWriteFailing
+        expr: increase(docviewer_audit_failures_total[5m]) > 0
+        labels:
+          severity: urgent
+        annotations:
+          summary: Access audits can't be saved, so searches are returning 503
+
+      # Anything but ok counts, so a source doesn't look healthier once its breaker opens.
+      - alert: SourceDegraded
+        expr: sum by (source) (rate(docviewer_source_calls_total{result!="ok"}[5m])) / sum by (source) (rate(docviewer_source_calls_total[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.source }} is failing more than half of its calls"

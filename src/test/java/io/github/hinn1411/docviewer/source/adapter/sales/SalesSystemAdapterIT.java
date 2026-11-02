@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -25,7 +26,11 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /** T07: maps the nested Sales response. The shared failure tests are in the base class. */
 @SpringBootTest(
-    classes = {SourceClientsConfig.class, SalesSystemAdapter.class},
+    classes = {
+      RestClientAutoConfiguration.class,
+      SourceClientsConfig.class,
+      SalesSystemAdapter.class
+    },
     webEnvironment = WebEnvironment.NONE)
 class SalesSystemAdapterIT extends BaseSourceAdapterIT {
 

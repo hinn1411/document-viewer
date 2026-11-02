@@ -25,6 +25,7 @@ import io.github.hinn1411.docviewer.domain.FailureReason;
 import io.github.hinn1411.docviewer.domain.ResultMerger;
 import io.github.hinn1411.docviewer.domain.SourceOutcome;
 import io.github.hinn1411.docviewer.domain.Vin;
+import io.github.hinn1411.docviewer.observability.DocumentViewerMetrics;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
 import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
 import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
@@ -32,6 +33,7 @@ import io.github.hinn1411.docviewer.source.adapter.sales.SalesSystemAdapter;
 import io.github.hinn1411.docviewer.source.adapter.service.ServiceSystemAdapter;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -48,6 +51,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 /** T12b: the Service breaker reacts to what the real adapter reports, with a low call minimum. */
 @SpringBootTest(
     classes = {
+      RestClientAutoConfiguration.class,
+      SimpleMeterRegistry.class,
+      DocumentViewerMetrics.class,
       SourceClientsConfig.class,
       SourceCircuitBreakerConfig.class,
       ExecutorConfig.class,
