@@ -36,11 +36,20 @@ docviewer:
       connect-timeout: 300ms
       read-timeout: 1500ms
 
+logging:
+  structured:
+    format:
+      console: logstash # one JSON object per line, with flat level and trace fields
+
 management:
   endpoints:
     web:
       exposure:
         include: health, info, prometheus
+  otlp:
+    metrics:
+      export:
+        enabled: false # metrics are scraped by Prometheus; Jaeger on 4318 takes traces only
   tracing:
     sampling:
       probability: 1.0 # every request locally; production sampling is a collector concern

@@ -7,6 +7,7 @@ import io.github.hinn1411.docviewer.domain.DocumentSearchResult;
 import io.github.hinn1411.docviewer.domain.FailureReason;
 import io.github.hinn1411.docviewer.domain.ResultMerger;
 import io.github.hinn1411.docviewer.domain.SourceOutcome;
+import io.github.hinn1411.docviewer.domain.SourceStatus;
 import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
 import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
@@ -21,6 +22,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -30,6 +33,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class DocumentSearchService {
+
+  private static final Logger log = LoggerFactory.getLogger(DocumentSearchService.class);
 
   private final List<DocumentSource> sources;
   private final ResultMerger merger;
@@ -67,7 +72,11 @@ public class DocumentSearchService {
     List<SourceOutcome> outcomes =
         calls.stream()
             .map(CompletableFuture::join)
-            .map(outcome -> fallback.applyTo(vin, outcome))
+            .map(
+                outcome -> {
+                  logIfCallFailed(outcome);
+                  return fallback.applyTo(vin, outcome);
+                })
             .toList();
     DocumentSearchResult result = merger.merge(vin, outcomes);
     auditor.record(caller, result);
@@ -99,7 +108,28 @@ public class DocumentSearchService {
     } catch (SourceException failure) {
       return SourceOutcome.unavailable(source.name(), failure.reason(), elapsedSince(start));
     } catch (RuntimeException unexpected) {
+      log.atError()
+          .setMessage("Unexpected source failure")
+          .addKeyValue("source", source.name())
+          .addKeyValue("failure", unexpected.getClass().getName())
+          .log();
       return SourceOutcome.unavailable(source.name(), FailureReason.ERROR, elapsedSince(start));
+    }
+  }
+
+  /**
+   * Logged here, after the join, because a call past the deadline never reaches {@link #call}. An
+   * open breaker made no call: the summary line shows it, so an outage doesn't add a line per
+   * request.
+   */
+  private static void logIfCallFailed(SourceOutcome outcome) {
+    if (outcome.status() == SourceStatus.UNAVAILABLE
+        && outcome.reason() != FailureReason.CIRCUIT_OPEN) {
+      log.atWarn()
+          .setMessage("Source call failed")
+          .addKeyValue("source", outcome.source())
+          .addKeyValue("reason", outcome.reason())
+          .log();
     }
   }
 

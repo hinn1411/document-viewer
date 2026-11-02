@@ -10,6 +10,8 @@ This builds what design doc §6 describes: watch the service the way users exper
 | `grafana` | `grafana/grafana` | 3000 | Prometheus data source and the dashboard, both provisioned from `observability/grafana/` |
 | `jaeger` | `jaegertracing/all-in-one` | 16686 (UI), 4318 (OTLP) | Receives traces directly over OTLP, so no separate collector is needed locally |
 
+Metrics reach Prometheus by scrape only, so OTLP metrics export stays off, because Jaeger accepts traces and nothing else. T14 turns on only trace export.
+
 ## T13: Metrics, dashboard and alert rules
 
 Serves NFR1, NFR2, NFR6.

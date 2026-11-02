@@ -13,11 +13,15 @@ import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /** Records who viewed which vehicle's documents. If it can't, the search must not return them. */
 @Component
 public class AccessAuditor {
+
+  private static final Logger log = LoggerFactory.getLogger(AccessAuditor.class);
 
   private final Clock clock;
   private final Tracer tracer;
@@ -43,6 +47,11 @@ public class AccessAuditor {
     try {
       auditRepository.save(record);
     } catch (RuntimeException failure) {
+      // The class only, because PostgreSQL's messages can hold the VIN.
+      log.atError()
+          .setMessage("Saving the audit record failed")
+          .addKeyValue("failure", failure.getClass().getName())
+          .log();
       throw new AuditUnavailableException();
     }
   }

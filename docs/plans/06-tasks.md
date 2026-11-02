@@ -30,7 +30,7 @@ Each task is one pull request. Run it with `/frame-task Txx`, then `/implement-t
 **P5 Observability**
 - [ ] **T13** Metrics, dashboard and alert rules
 - [ ] **T14** Tracing
-- [ ] **T15** Structured logs
+- [x] **T15** Structured logs
 
 **P6 Delivery**
 - [ ] **T16** README, demo and AI narrative

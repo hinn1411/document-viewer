@@ -49,19 +49,21 @@ public class SnapshotFallback {
     }
     Optional<Snapshot> copy = findCopy(vin, outcome.source());
     if (copy.isEmpty()) {
-      log.info(
-          "No usable fallback copy: source={}, vin={}, reason={}",
-          outcome.source(),
-          vin.masked(),
-          outcome.reason());
+      log.atInfo()
+          .setMessage("No usable fallback copy")
+          .addKeyValue("source", outcome.source())
+          .addKeyValue("vin", vin.masked())
+          .addKeyValue("reason", outcome.reason())
+          .log();
       return outcome;
     }
-    log.info(
-        "Serving fallback copy: source={}, vin={}, reason={}, dataAsOf={}",
-        outcome.source(),
-        vin.masked(),
-        outcome.reason(),
-        copy.get().fetchedAt());
+    log.atInfo()
+        .setMessage("Serving fallback copy")
+        .addKeyValue("source", outcome.source())
+        .addKeyValue("vin", vin.masked())
+        .addKeyValue("reason", outcome.reason())
+        .addKeyValue("dataAsOf", copy.get().fetchedAt())
+        .log();
     return SourceOutcome.stale(
         outcome.source(),
         outcome.reason(),
@@ -86,11 +88,12 @@ public class SnapshotFallback {
     try {
       return snapshotRepository.findNewerThan(vin, source, clock.instant().minus(maxAge));
     } catch (RuntimeException failure) {
-      log.warn(
-          "Reading a fallback copy failed: source={}, vin={}, failure={}",
-          source,
-          vin.masked(),
-          failure.getClass().getName());
+      log.atWarn()
+          .setMessage("Reading a fallback copy failed")
+          .addKeyValue("source", source)
+          .addKeyValue("vin", vin.masked())
+          .addKeyValue("failure", failure.getClass().getName())
+          .log();
       return Optional.empty();
     }
   }
@@ -106,22 +109,24 @@ public class SnapshotFallback {
   private void save(Snapshot snapshot) {
     try {
       snapshotRepository.save(snapshot);
-      log.debug(
-          "Saved fallback copy: source={}, vin={}, documentCount={}, fetchedAt={}",
-          snapshot.source(),
-          snapshot.vin().masked(),
-          snapshot.documents().size(),
-          snapshot.fetchedAt());
+      log.atDebug()
+          .setMessage("Saved fallback copy")
+          .addKeyValue("source", snapshot.source())
+          .addKeyValue("vin", snapshot.vin().masked())
+          .addKeyValue("documentCount", snapshot.documents().size())
+          .addKeyValue("fetchedAt", snapshot.fetchedAt())
+          .log();
     } catch (RuntimeException failure) {
       logSaveFailure(snapshot, failure);
     }
   }
 
   private static void logSaveFailure(Snapshot snapshot, RuntimeException failure) {
-    log.warn(
-        "Saving a fallback copy failed: source={}, vin={}, failure={}",
-        snapshot.source(),
-        snapshot.vin().masked(),
-        failure.getClass().getName());
+    log.atWarn()
+        .setMessage("Saving a fallback copy failed")
+        .addKeyValue("source", snapshot.source())
+        .addKeyValue("vin", snapshot.vin().masked())
+        .addKeyValue("failure", failure.getClass().getName())
+        .log();
   }
 }

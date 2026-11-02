@@ -49,10 +49,11 @@ public class SourceCircuitBreakerConfig {
         .getEventPublisher()
         .onStateTransition(
             change ->
-                log.warn(
-                    "Circuit breaker changed state: source={}, from={}, to={}",
-                    change.getCircuitBreakerName(),
-                    change.getStateTransition().getFromState(),
-                    change.getStateTransition().getToState()));
+                log.atWarn()
+                    .setMessage("Circuit breaker changed state")
+                    .addKeyValue("source", change.getCircuitBreakerName())
+                    .addKeyValue("from", change.getStateTransition().getFromState())
+                    .addKeyValue("to", change.getStateTransition().getToState())
+                    .log());
   }
 }
