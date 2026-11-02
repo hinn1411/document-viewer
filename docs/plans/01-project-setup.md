@@ -54,12 +54,13 @@ io.github.hinn1411.docviewer
 ├── DocumentViewerApplication.java
 ├── api/                     API layer
 │   ├── DocumentController.java      GET /api/v1/vehicles/{vin}/documents, reads X-User-Id / X-Dealership-Id
-│   ├── SearchSummaryLog.java        the one summary log line per search
 │   ├── dto/                         response records (never return domain objects)
 │   ├── error/
 │   │   └── ProblemHandler.java      400 / 401 / 503 / 500 as problem details
-│   └── filter/
-│       └── ResponseHeadersFilter.java   X-Request-Id and Cache-Control on every response
+│   ├── filter/
+│   │   └── ResponseHeadersFilter.java   X-Request-Id and Cache-Control on every response
+│   └── logging/
+│       └── SearchSummaryLog.java    the one summary log line per search
 ├── domain/                  Records, enums and rules with no external dependencies
 │   ├── Vin, Caller, Document, SourceOutcome, … (see 05-domain-model.md)
 │   ├── ResultMerger.java            dedupe, sort (pure function)

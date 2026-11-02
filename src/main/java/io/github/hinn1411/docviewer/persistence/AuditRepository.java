@@ -2,6 +2,8 @@ package io.github.hinn1411.docviewer.persistence;
 
 import io.github.hinn1411.docviewer.domain.AccessAuditRecord;
 import java.time.ZoneOffset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.json.JsonMapper;
@@ -9,6 +11,8 @@ import tools.jackson.databind.json.JsonMapper;
 /** Saves rows to {@code document_access_audit}, which is insert-only. */
 @Repository
 public class AuditRepository {
+
+  private static final Logger log = LoggerFactory.getLogger(AuditRepository.class);
 
   private final JdbcClient jdbcClient;
 
@@ -37,5 +41,10 @@ public class AuditRepository {
         .param("sourceStatuses", JsonMapper.shared().writeValueAsString(record.sourceStatuses()))
         .param("documentCount", record.documentCount())
         .update();
+    log.atDebug()
+        .setMessage("Saved audit record")
+        .addKeyValue("id", record.id())
+        .addKeyValue("outcome", record.outcome())
+        .log();
   }
 }

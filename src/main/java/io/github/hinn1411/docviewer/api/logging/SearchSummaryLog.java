@@ -1,4 +1,4 @@
-package io.github.hinn1411.docviewer.api;
+package io.github.hinn1411.docviewer.api.logging;
 
 import io.github.hinn1411.docviewer.domain.Caller;
 import io.github.hinn1411.docviewer.domain.DocumentSearchResult;
@@ -10,13 +10,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Writes the one summary line for a search. It holds counts and statuses, never document data. */
-final class SearchSummaryLog {
+public final class SearchSummaryLog {
 
   private static final Logger log = LoggerFactory.getLogger(SearchSummaryLog.class);
 
   private SearchSummaryLog() {}
 
-  static void write(Caller caller, DocumentSearchResult result, int httpStatus, long durationMs) {
+  public static void write(
+      Caller caller, DocumentSearchResult result, int httpStatus, long durationMs) {
     log.atInfo()
         .setMessage("documents.search completed")
         .addKeyValue("userId", caller.userId())
