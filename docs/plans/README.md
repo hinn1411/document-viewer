@@ -49,7 +49,7 @@ The red and green commits make the test-first order visible in the git history.
 | P2 Source systems | T07–T09 | done |
 | P3 Persistence | T10–T11 | done |
 | P4 API | T12, T12b | done |
-| P5 Observability | T13–T15 | T13 and T15 done, T14 todo |
+| P5 Observability | T13–T15 | done |
 | P6 Delivery | T16 | todo |
 | P7 CD and AWS (optional) | T17–T19 | todo |
 

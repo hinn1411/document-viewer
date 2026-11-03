@@ -6,7 +6,6 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
-import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 /** The six metrics from design doc §6.2, so their names and labels live in one place. */
@@ -77,7 +76,7 @@ public class DocumentViewerMetrics {
 
   /** {@code reason} is null for a call that succeeded. */
   private Counter sourceCalls(String source, FailureReason reason) {
-    String result = reason == null ? "ok" : reason.name().toLowerCase(Locale.ROOT);
-    return registry.counter("docviewer.source.calls", "source", source, "result", result);
+    return registry.counter(
+        "docviewer.source.calls", "source", source, "result", CallResults.of(reason));
   }
 }

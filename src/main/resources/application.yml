@@ -53,6 +53,8 @@ management:
   tracing:
     sampling:
       probability: 1.0 # every request locally; production sampling is a collector concern
-    export:
-      otlp:
-        enabled: false # tracing creates IDs from day 1; export to Jaeger starts in T14
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces # Jaeger in Docker Compose
