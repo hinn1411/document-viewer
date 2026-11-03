@@ -9,9 +9,9 @@ Java 21 · Spring Boot 4.1 (Spring Framework 7) · PostgreSQL 16 · Flyway · `J
 - `./mvnw spotless:apply`: format (the `format-java` hook does this after each edit)
 - `./mvnw test`: unit tests
 - `./mvnw verify`: unit + integration tests (needs Docker for Testcontainers)
-- `docker compose up`: PostgreSQL, the two mock sources, Prometheus (9090) and Grafana (3000)
+- `docker compose up`: PostgreSQL, the two mock sources, Prometheus (9090), Grafana (3000) and Jaeger (16686)
 - `bash scripts/test-hooks.sh`: checks the harness hooks
-- `bash scripts/test-compose.sh`: checks the Compose stack and demo VINs (needs ports 5432, 8081, 8082, 9090 and 3000 free)
+- `bash scripts/test-compose.sh`: checks the Compose stack and demo VINs (needs ports 5432, 8081, 8082, 9090, 3000, 16686 and 4318 free)
 
 ## Rules
 Code rules live in `.claude/rules/` and load when you work on matching files:

@@ -10,12 +10,14 @@ import io.github.hinn1411.docviewer.domain.SourceOutcome;
 import io.github.hinn1411.docviewer.domain.SourceStatus;
 import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.observability.DocumentViewerMetrics;
+import io.github.hinn1411.docviewer.observability.DocumentViewerSpans;
 import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
 import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
 import io.github.hinn1411.docviewer.source.DocumentSource;
 import io.github.hinn1411.docviewer.source.error.SourceException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.micrometer.tracing.Span;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -46,6 +48,7 @@ public class DocumentSearchService {
   private final Clock clock;
   private final CircuitBreakerRegistry breakers;
   private final DocumentViewerMetrics metrics;
+  private final DocumentViewerSpans spans;
 
   public DocumentSearchService(
       List<DocumentSource> sources,
@@ -56,7 +59,8 @@ public class DocumentSearchService {
       SnapshotFallback fallback,
       Clock clock,
       CircuitBreakerRegistry breakers,
-      DocumentViewerMetrics metrics) {
+      DocumentViewerMetrics metrics,
+      DocumentViewerSpans spans) {
     this.sources = sources;
     this.merger = merger;
     this.sourceCallExecutor = sourceCallExecutor;
@@ -66,6 +70,7 @@ public class DocumentSearchService {
     this.clock = clock;
     this.breakers = breakers;
     this.metrics = metrics;
+    this.spans = spans;
     sources.forEach(source -> metrics.registerSource(source.name()));
   }
 
@@ -97,8 +102,15 @@ public class DocumentSearchService {
   private CompletableFuture<SourceOutcome> callWithDeadline(DocumentSource source, Vin vin) {
     SourceOutcome timedOut =
         SourceOutcome.unavailable(source.name(), FailureReason.TIMEOUT, deadline);
-    return CompletableFuture.supplyAsync(() -> call(source, vin), sourceCallExecutor)
-        .completeOnTimeout(timedOut, deadline.toMillis(), TimeUnit.MILLISECONDS);
+    Span span = spans.startSourceCall(source.name(), vin);
+    return CompletableFuture.supplyAsync(
+            () -> spans.inSourceCall(span, () -> call(source, vin)), sourceCallExecutor)
+        .completeOnTimeout(timedOut, deadline.toMillis(), TimeUnit.MILLISECONDS)
+        .thenApply(
+            outcome -> {
+              spans.endSourceCall(span, outcome);
+              return outcome;
+            });
   }
 
   /** The breaker is outside the adapter's retry, so one search counts as one call. */

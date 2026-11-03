@@ -52,3 +52,10 @@ services:
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
+
+  # Receives the app's traces over OTLP on 4318. The UI is on 16686
+  jaeger:
+    image: jaegertracing/jaeger:2.21.0
+    ports:
+      - "16686:16686"
+      - "4318:4318"

@@ -26,6 +26,7 @@ import io.github.hinn1411.docviewer.domain.ResultMerger;
 import io.github.hinn1411.docviewer.domain.SourceOutcome;
 import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.observability.DocumentViewerMetrics;
+import io.github.hinn1411.docviewer.observability.DocumentViewerSpans;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
 import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
 import io.github.hinn1411.docviewer.search.support.fallback.SnapshotFallback;
@@ -41,6 +42,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.micrometer.tracing.autoconfigure.NoopTracerAutoConfiguration;
 import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -54,6 +56,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       RestClientAutoConfiguration.class,
       SimpleMeterRegistry.class,
       DocumentViewerMetrics.class,
+      DocumentViewerSpans.class,
+      NoopTracerAutoConfiguration.class,
       SourceClientsConfig.class,
       SourceCircuitBreakerConfig.class,
       ExecutorConfig.class,

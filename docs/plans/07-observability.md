@@ -8,7 +8,7 @@ This builds what design doc §6 describes: watch the service the way users exper
 |---|---|---|---|
 | `prometheus` | `prom/prometheus` | 9090 | Scrapes `/actuator/prometheus` every 15 s and loads `observability/alerts.yml` |
 | `grafana` | `grafana/grafana` | 3000 | Prometheus data source and the dashboard, both provisioned from `observability/grafana/` |
-| `jaeger` | `jaegertracing/all-in-one` | 16686 (UI), 4318 (OTLP) | Receives traces directly over OTLP, so no separate collector is needed locally |
+| `jaeger` | `jaegertracing/jaeger` (v2, all-in-one by default; v1 `all-in-one` reached end of life in 2025) | 16686 (UI), 4318 (OTLP) | Receives traces directly over OTLP, so no separate collector is needed locally |
 
 Metrics reach Prometheus by scrape only, so OTLP metrics export stays off, because Jaeger accepts traces and nothing else. T14 turns on only trace export.
 
@@ -62,7 +62,7 @@ Serves NFR6.
 - **One trace per request.** Its trace ID is returned as `X-Request-Id`, and the same ID is written to the audit row and the logs.
 - **Spans:** the request, then `sales.fetch` and `service.fetch` (in parallel), `fallback.read` (only when a source failed) and `audit.save`.
 - **Span attributes:** `source`, `result`, `document_count` and the masked VIN. Never the full VIN, titles or URLs. The VIN is in the request path and in the adapters' outgoing URLs, so check the default `http.url` attributes on server and client spans before turning export on (from T12's review, not yet checked).
-- **Context across threads:** the virtual-thread executor is wrapped with Micrometer's context-propagation support, so the source spans are children of the request span. Without the wrapper they start new traces, which is a common AI mistake. The exact API is checked through context7 when this is built.
+- **Context across threads:** each source span starts on the request thread, so its parent is the request span, and is put in scope on the source call's virtual thread. Without that, the HTTP client span and `traceparent` start a new trace, which is a common AI mistake. Wrapping the executor with context propagation isn't enough on its own: it would carry the request span, not the source span.
 - **To the sources:** `RestClient` from the auto-configured builder sends the W3C `traceparent` header.
 - **Sampling:** 100% locally. The design's production policy (keep every failed or slow trace plus about 10% of the rest) belongs in a collector's tail-sampling config, which is out of scope for local runs.
 

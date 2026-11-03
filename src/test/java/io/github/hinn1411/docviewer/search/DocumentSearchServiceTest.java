@@ -27,6 +27,7 @@ import io.github.hinn1411.docviewer.domain.SourceStatus;
 import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.domain.error.AuditUnavailableException;
 import io.github.hinn1411.docviewer.observability.DocumentViewerMetrics;
+import io.github.hinn1411.docviewer.observability.DocumentViewerSpans;
 import io.github.hinn1411.docviewer.persistence.AuditRepository;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
 import io.github.hinn1411.docviewer.search.support.audit.AccessAuditor;
@@ -331,9 +332,10 @@ class DocumentSearchServiceTest {
     DocViewerProperties properties =
         new DocViewerProperties(DEADLINE, MAX_AGE, ZoneOffset.UTC, Map.of());
     DocumentViewerMetrics metrics = new DocumentViewerMetrics(new SimpleMeterRegistry());
-    AccessAuditor auditor = new AccessAuditor(clock, tracer, auditRepository, metrics);
+    DocumentViewerSpans spans = new DocumentViewerSpans(Tracer.NOOP);
+    AccessAuditor auditor = new AccessAuditor(clock, tracer, auditRepository, metrics, spans);
     SnapshotFallback fallback =
-        new SnapshotFallback(clock, snapshotRepository, executor, properties, metrics);
+        new SnapshotFallback(clock, snapshotRepository, executor, properties, metrics, spans);
     return new DocumentSearchService(
             List.of(sources),
             new ResultMerger(),
@@ -343,7 +345,8 @@ class DocumentSearchServiceTest {
             fallback,
             clock,
             breakers,
-            metrics)
+            metrics,
+            spans)
         .search(VIN, CALLER);
   }
 

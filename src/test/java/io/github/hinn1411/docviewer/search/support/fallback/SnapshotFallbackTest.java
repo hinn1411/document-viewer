@@ -19,8 +19,10 @@ import io.github.hinn1411.docviewer.domain.Snapshot;
 import io.github.hinn1411.docviewer.domain.SourceOutcome;
 import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.observability.DocumentViewerMetrics;
+import io.github.hinn1411.docviewer.observability.DocumentViewerSpans;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.tracing.Tracer;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -65,7 +67,8 @@ class SnapshotFallbackTest {
           repository,
           executor,
           new DocViewerProperties(Duration.ofSeconds(2), MAX_AGE, ZoneOffset.UTC, Map.of()),
-          new DocumentViewerMetrics(new SimpleMeterRegistry()));
+          new DocumentViewerMetrics(new SimpleMeterRegistry()),
+          new DocumentViewerSpans(Tracer.NOOP));
 
   @Test
   void savesLiveAnswersInBackground() {

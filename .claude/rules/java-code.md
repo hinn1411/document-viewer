@@ -14,8 +14,8 @@ Applies to all production code.
 - `source/`: the `DocumentSource` interface; `adapter/` (`BaseSourceAdapter`, `sales/`, `service/`); `error/` (`SourceException`, `RetryOnTransientError`)
 - `persistence/`: audit and snapshot repositories
 - `job/`: scheduled jobs (`SnapshotCleanupJob`)
-- `observability/`: `TraceIds`, `DocumentViewerMetrics`
-- `config/`: `properties/`, `client/`, `execution/` (executor, scheduling), `time/` (`Clock`)
+- `observability/`: `TraceIds`, `DocumentViewerMetrics`, `DocumentViewerSpans`, `CallResults`, `ClassOnlyError`
+- `config/`: `properties/`, `client/`, `execution/` (executor, scheduling), `time/` (`Clock`), `tracing/` (keeps the VIN out of HTTP spans)
 
 ## Dependencies
 - They run one way: `api → search → source, persistence → domain`, and `job → persistence → domain`. `config/` and `observability/` are used across the others.
