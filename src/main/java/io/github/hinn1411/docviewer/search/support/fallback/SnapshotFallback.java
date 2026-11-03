@@ -6,6 +6,7 @@ import io.github.hinn1411.docviewer.domain.SourceOutcome;
 import io.github.hinn1411.docviewer.domain.SourceStatus;
 import io.github.hinn1411.docviewer.domain.Vin;
 import io.github.hinn1411.docviewer.observability.DocumentViewerMetrics;
+import io.github.hinn1411.docviewer.observability.DocumentViewerSpans;
 import io.github.hinn1411.docviewer.persistence.SnapshotRepository;
 import java.time.Clock;
 import java.time.Duration;
@@ -32,18 +33,21 @@ public class SnapshotFallback {
   private final ExecutorService executor;
   private final Duration maxAge;
   private final DocumentViewerMetrics metrics;
+  private final DocumentViewerSpans spans;
 
   public SnapshotFallback(
       Clock clock,
       SnapshotRepository snapshotRepository,
       ExecutorService sourceCallExecutor,
       DocViewerProperties properties,
-      DocumentViewerMetrics metrics) {
+      DocumentViewerMetrics metrics,
+      DocumentViewerSpans spans) {
     this.clock = clock;
     this.snapshotRepository = snapshotRepository;
     this.executor = sourceCallExecutor;
     this.maxAge = properties.fallbackMaxAge();
     this.metrics = metrics;
+    this.spans = spans;
   }
 
   /** Turns a failed outcome into a stale one if a recent copy exists. Others pass through. */
@@ -91,7 +95,10 @@ public class SnapshotFallback {
 
   private Optional<Snapshot> findCopy(Vin vin, String source) {
     try {
-      return snapshotRepository.findNewerThan(vin, source, clock.instant().minus(maxAge));
+      return spans.readFallback(
+          source,
+          vin,
+          () -> snapshotRepository.findNewerThan(vin, source, clock.instant().minus(maxAge)));
     } catch (RuntimeException failure) {
       log.atWarn()
           .setMessage("Reading a fallback copy failed")
