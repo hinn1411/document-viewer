@@ -11,24 +11,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 
-/** Keeps the full VIN out of the spans Spring creates for HTTP requests (NFR3). */
+/** Keeps the full VIN out of Spring's HTTP spans (NFR3). */
 @Configuration
 public class TracingConfig {
 
-  /**
-   * The request path and the source URLs hold the VIN. Spans keep the {@code uri} template, such as
-   * {@code /api/v1/vehicles/{vin}/documents}, and lose the full URL.
-   */
+  /** The full URL holds the VIN. Spans keep the {@code uri} template. */
   @Bean
   ObservationFilter dropFullUrl() {
     return context -> context.removeHighCardinalityKeyValue("http.url");
   }
 
   /**
-   * Replaces Boot's handler for source call spans, changing only how a failure is recorded.
-   * Spring's client errors carry the URL in their message, and the default handler copies the
-   * message into the span when the call fails, before any filter runs. The order is Boot's, so this
-   * handler still runs before the default one and sends {@code traceparent}.
+   * Boot's client-span handler, but a failure records its class only, as Spring's message holds the
+   * URL. Boot's order keeps {@code traceparent} working.
    */
   @Bean
   @Order(MicrometerTracingAutoConfiguration.SENDER_TRACING_OBSERVATION_HANDLER_ORDER)

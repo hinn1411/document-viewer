@@ -3,7 +3,7 @@ package io.github.hinn1411.docviewer.observability;
 import io.github.hinn1411.docviewer.domain.FailureReason;
 import java.util.Locale;
 
-/** The {@code result} of a source call, shared by metrics and spans so the two always agree. */
+/** A source call's {@code result} label, shared by metrics and spans. */
 final class CallResults {
 
   private CallResults() {}

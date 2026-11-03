@@ -10,10 +10,7 @@ import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 
-/**
- * The spans from design doc §6.2, below the request span Spring creates. They carry the masked VIN
- * only, and a failure's class only, because exception messages can hold the VIN.
- */
+/** The spans from design doc §6.2, with the masked VIN and a failure's class only. */
 @Component
 public class DocumentViewerSpans {
 
@@ -33,10 +30,7 @@ public class DocumentViewerSpans {
         .start();
   }
 
-  /**
-   * Runs a source call on its own thread with its span current, so the HTTP client span, the {@code
-   * traceparent} header and the thread's log lines all join the request's trace.
-   */
+  /** Makes the span current on the call's thread, so the call joins the trace. */
   public <T> T inSourceCall(Span span, Supplier<T> call) {
     try (Tracer.SpanInScope scope = tracer.withSpan(span)) {
       return call.get();
@@ -44,9 +38,8 @@ public class DocumentViewerSpans {
   }
 
   /**
-   * Ends with what the search got, so a deadline timeout ends the span at the deadline. {@code
-   * failure} is set instead when the call gave no outcome: the executor rejected it, or it threw an
-   * {@code Error}. The span then still ends, as an error with the class only.
+   * Ends with the outcome, so a timeout ends at the deadline. With no outcome (rejected, or an
+   * {@code Error}), it ends as an error.
    */
   public void endSourceCall(Span span, SourceOutcome outcome, Throwable failure) {
     if (failure == null) {
@@ -62,14 +55,14 @@ public class DocumentViewerSpans {
     span.end();
   }
 
-  /** Runs the read of a failed source's fallback copy in a {@code fallback.read} span. */
+  /** The fallback read, in a {@code fallback.read} span. */
   public <T> T readFallback(String source, Vin vin, Supplier<T> read) {
     Span span =
         tracer.nextSpan().name("fallback.read").tag("source", source).tag("vin", vin.masked());
     return inStep(span, read);
   }
 
-  /** Runs the audit insert in an {@code audit.save} span. */
+  /** The audit insert, in an {@code audit.save} span. */
   public void saveAudit(Vin vin, Runnable save) {
     Span span = tracer.nextSpan().name("audit.save").tag("vin", vin.masked());
     inStep(
@@ -80,7 +73,7 @@ public class DocumentViewerSpans {
         });
   }
 
-  /** A failed step shows as an error in Jaeger, with the exception's class only. */
+  /** A failure shows as an error, with its class only. */
   private <T> T inStep(Span span, Supplier<T> step) {
     span.start();
     try (Tracer.SpanInScope scope = tracer.withSpan(span)) {

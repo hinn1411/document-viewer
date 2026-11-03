@@ -142,10 +142,7 @@ class TracingIT {
             .withHeader("traceparent", matching(traceparent)));
   }
 
-  /**
-   * Service times out, so its HTTP client span carries an error, which Spring's message says has
-   * the URL.
-   */
+  /** Service times out, so its client span has an error whose message holds the URL. */
   @Test
   void spansContainOnlyMaskedVin() {
     String traceId = search(VIN_SERVICE_SLOW);

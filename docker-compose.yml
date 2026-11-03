@@ -53,7 +53,7 @@ services:
     depends_on:
       - prometheus
 
-  # Receives the app's traces over OTLP on 4318. The UI is on 16686
+  # Traces over OTLP on 4318, UI on 16686
   jaeger:
     image: jaegertracing/jaeger:2.21.0
     ports:
