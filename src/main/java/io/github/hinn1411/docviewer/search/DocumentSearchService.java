@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,14 +104,15 @@ public class DocumentSearchService {
     SourceOutcome timedOut =
         SourceOutcome.unavailable(source.name(), FailureReason.TIMEOUT, deadline);
     Span span = spans.startSourceCall(source.name(), vin);
-    return CompletableFuture.supplyAsync(
-            () -> spans.inSourceCall(span, () -> call(source, vin)), sourceCallExecutor)
-        .completeOnTimeout(timedOut, deadline.toMillis(), TimeUnit.MILLISECONDS)
-        .thenApply(
-            outcome -> {
-              spans.endSourceCall(span, outcome);
-              return outcome;
-            });
+    try {
+      return CompletableFuture.supplyAsync(
+              () -> spans.inSourceCall(span, () -> call(source, vin)), sourceCallExecutor)
+          .completeOnTimeout(timedOut, deadline.toMillis(), TimeUnit.MILLISECONDS)
+          .whenComplete((outcome, failure) -> spans.endSourceCall(span, outcome, failure));
+    } catch (RejectedExecutionException shuttingDown) {
+      spans.endSourceCall(span, null, shuttingDown);
+      throw shuttingDown;
+    }
   }
 
   /** The breaker is outside the adapter's retry, so one search counts as one call. */

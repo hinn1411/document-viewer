@@ -1,10 +1,12 @@
 package io.github.hinn1411.docviewer.observability;
 
+import io.github.hinn1411.docviewer.domain.FailureReason;
 import io.github.hinn1411.docviewer.domain.SourceOutcome;
 import io.github.hinn1411.docviewer.domain.Vin;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import java.util.Locale;
+import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 
@@ -41,11 +43,23 @@ public class DocumentViewerSpans {
     }
   }
 
-  /** Ends with what the search got, so a deadline timeout ends the span at the deadline. */
-  public void endSourceCall(Span span, SourceOutcome outcome) {
-    span.tag("result", CallResults.of(outcome.reason()))
-        .tag("document_count", String.valueOf(outcome.documents().size()))
-        .end();
+  /**
+   * Ends with what the search got, so a deadline timeout ends the span at the deadline. {@code
+   * failure} is set instead when the call gave no outcome: the executor rejected it, or it threw an
+   * {@code Error}. The span then still ends, as an error with the class only.
+   */
+  public void endSourceCall(Span span, SourceOutcome outcome, Throwable failure) {
+    if (failure == null) {
+      span.tag("result", CallResults.of(outcome.reason()))
+          .tag("document_count", String.valueOf(outcome.documents().size()));
+    } else {
+      Throwable cause =
+          failure instanceof CompletionException && failure.getCause() != null
+              ? failure.getCause()
+              : failure;
+      span.tag("result", CallResults.of(FailureReason.ERROR)).error(new ClassOnlyError(cause));
+    }
+    span.end();
   }
 
   /** Runs the read of a failed source's fallback copy in a {@code fallback.read} span. */
